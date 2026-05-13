@@ -41,8 +41,16 @@ function SidebarLista({ conversaciones, loading, receptor, onSelect, onNuevo }) 
 
 function ChatPanel({ receptor, mensajes, loadingMsg, onSend, onBack }) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-base-200 bg-base-100 flex-shrink-0">
+    <div className="flex flex-col h-full relative">
+      {/* Logo fijo al centro del panel — fuera del área scrolleable */}
+      <img
+        src="/logo.png"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 pointer-events-none select-none rounded-full z-0"
+        style={{ opacity: 0.15, mixBlendMode: 'multiply' }}
+        alt=""
+        aria-hidden="true"
+      />
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-base-200 bg-base-100 flex-shrink-0 relative z-10">
         {onBack && (
           <button className="btn btn-ghost btn-sm btn-circle -ml-1" onClick={onBack}>
             <IconArrowLeft size={18} />
@@ -61,18 +69,11 @@ function ChatPanel({ receptor, mensajes, loadingMsg, onSend, onBack }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-[#FAF6F5] relative">
-        <img
-          src="/logo.png"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 pointer-events-none select-none rounded-full"
-          style={{ opacity: 0.15, mixBlendMode: 'multiply' }}
-          alt=""
-          aria-hidden="true"
-        />
-        <MessageList mensajes={mensajes} loading={loadingMsg} />
+      <div className="flex-1 overflow-y-auto bg-[#FAF6F5] relative z-10">
+        <MessageList key={receptor.id} mensajes={mensajes} loading={loadingMsg} />
       </div>
 
-      <div className="flex-shrink-0 border-t border-base-200 bg-base-100">
+      <div className="flex-shrink-0 border-t border-base-200 bg-base-100 relative z-10">
         <MessageInput onSend={onSend} />
       </div>
     </div>

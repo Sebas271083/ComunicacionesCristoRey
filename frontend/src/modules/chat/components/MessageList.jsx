@@ -37,10 +37,13 @@ function DateSeparator({ date }) {
 export function MessageList({ mensajes, loading }) {
   const { user } = useAuth();
   const bottomRef = useRef(null);
+  const isFirst = useRef(true);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mensajes]);
+    if (loading || !bottomRef.current) return;
+    bottomRef.current.scrollIntoView({ behavior: isFirst.current ? 'instant' : 'smooth' });
+    isFirst.current = false;
+  }, [mensajes, loading]);
 
   if (loading) {
     return (
