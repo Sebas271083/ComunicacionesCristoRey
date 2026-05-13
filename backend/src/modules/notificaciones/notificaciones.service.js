@@ -85,10 +85,15 @@ async function resolverDestinatarios({ cursoId, alumnoId, destinatario = 'todos'
 export async function notificarCreacion({ cursoId, alumnoId, destinatario, creadorId, payload }) {
   try {
     const ids = await resolverDestinatarios({ cursoId, alumnoId, destinatario, excluirId: creadorId });
+    console.log(`[PUSH] ${payload.title} → ${ids.length} destinatarios`);
     if (!ids.length) return;
-    Promise.allSettled(ids.map((id) => enviarNotificacion(id, payload))).catch(() => {});
-  } catch {
-    // No bloquear la creación si la notificación falla
+    const resultados = await Promise.allSettled(ids.map((id) => enviarNotificacion(id, payload)));
+    const ok  = resultados.filter((r) => r.value === true).length;
+    const sin = resultados.filter((r) => r.value === null).length;
+    const err = resultados.filter((r) => r.status === 'rejected' || r.value === false).length;
+    console.log(`[PUSH] enviados: ${ok} | sin suscripción: ${sin} | errores: ${err}`);
+  } catch (e) {
+    console.error('[PUSH] Error en notificarCreacion:', e.message);
   }
 }
 
