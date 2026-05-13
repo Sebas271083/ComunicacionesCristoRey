@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\config\" \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\middleware\" \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\routes\" \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\controllers\" \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\services\" \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\prisma\\\\migrations\" \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\types\")",
+      "Bash(Remove-Item -Recurse -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\" -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item -Recurse -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\frontend\\\\src\" -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\package.json\" -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\tsconfig.json\" -ErrorAction SilentlyContinue)",
+      "Bash(Write-Host \"Limpieza completada\")",
+      "PowerShell(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\" -ErrorAction SilentlyContinue)",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\modules\\\\cursos\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\modules\\\\alumnos\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\backend\\\\src\\\\modules\\\\anuncios\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\programacion\\\\AppMensajeriaEscolar\\\\frontend\\\\src\\\\modules\\\\anuncios\")"
+    ],
+    "additionalDirectories": [
+      "d:\\programacion\\AppMensajeriaEscolar\\backend\\src"
+    ]
+  }
+}

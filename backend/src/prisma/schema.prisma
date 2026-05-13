@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nombre    String
+  rol       String   // "papa" | "docente" | "admin"
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mensajesEnviados   Mensaje[]         @relation("enviador")
+  mensajesRecibidos  Mensaje[]         @relation("receptor")
+  tareasCreadas      Tarea[]           @relation("creador")
+  eventosCreados     Evento[]          @relation("creador")
+  anunciosCreados    Anuncio[]         @relation("creador")
+  subscripcion       PushSubscription?
+  cursosDocente      CursoDocente[]
+  hijos              PapaAlumno[]
+
+  @@map("usuarios")
+}
+
+model Curso {
+  id        String   @id @default(cuid())
+  nombre    String   // "3° A", "4° B"
+  nivel     String   @default("primaria") // "primaria" | "secundaria"
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  docentes  CursoDocente[]
+  alumnos   Alumno[]
+  anuncios  Anuncio[]
+  tareas    Tarea[]
+  eventos   Evento[]
+
+  @@map("cursos")
+}
+
+model Materia {
+  id        String   @id @default(cuid())
+  nombre    String   // "Matemática", "Lengua"
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  cursos    CursoDocente[]
+
+  @@map("materias")
+}
+
+// Docente asignado a un curso con una materia
+model CursoDocente {
+  id        String   @id @default(cuid())
+  curso     Curso    @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  cursoId   String
+  docente   Usuario  @relation(fields: [docenteId], references: [id], onDelete: Cascade)
+  docenteId String
+  materia   Materia? @relation(fields: [materiaId], references: [id])
+  materiaId String?
+  createdAt DateTime @default(now())
+
+  @@unique([cursoId, docenteId, materiaId])
+  @@map("curso_docentes")
+}
+
+model Alumno {
+  id        String   @id @default(cuid())
+  nombre    String
+  curso     Curso    @relation(fields: [cursoId], references: [id])
+  cursoId   String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  padres    PapaAlumno[]
+  eventos   Evento[]
+
+  @@map("alumnos")
+}
+
+// Un papá puede tener varios hijos
+model PapaAlumno {
+  papa      Usuario @relation(fields: [papaId], references: [id], onDelete: Cascade)
+  papaId    String
+  alumno    Alumno  @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  alumnoId  String
+
+  @@id([papaId, alumnoId])
+  @@map("papa_alumnos")
+}
+
+model Mensaje {
+  id         String   @id @default(cuid())
+  contenido  String
+  enviador   Usuario  @relation("enviador", fields: [enviadorId], references: [id])
+  enviadorId String
+  receptor   Usuario  @relation("receptor", fields: [receptorId], references: [id])
+  receptorId String
+  leido      Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([enviadorId, receptorId])
+  @@index([createdAt])
+  @@map("mensajes")
+}
+
+model Tarea {
+  id               String   @id @default(cuid())
+  titulo           String
+  descripcion      String?
+  fechaVencimiento DateTime
+  creador          Usuario  @relation("creador", fields: [creadorId], references: [id])
+  creadorId        String
+  curso            Curso?   @relation(fields: [cursoId], references: [id])
+  cursoId          String?  // null = todos los cursos
+  destinatario     String   @default("todos") // "todos" | "docentes" | "padres"
+  completada       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([creadorId, fechaVencimiento])
+  @@map("tareas")
+}
+
+model Evento {
+  id           String   @id @default(cuid())
+  titulo       String
+  descripcion  String?
+  fecha        DateTime
+  tipo         String   // "examen" | "reunion" | "evento" | "feriado"
+  creador      Usuario  @relation("creador", fields: [creadorId], references: [id])
+  creadorId    String
+  curso        Curso?   @relation(fields: [cursoId], references: [id])
+  cursoId      String?  // null = toda la institución
+  alumno       Alumno?  @relation(fields: [alumnoId], references: [id])
+  alumnoId     String?  // null = no específico de alumno
+  destinatario String   @default("todos") // "todos" | "docentes" | "padres"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([fecha])
+  @@map("eventos")
+}
+
+// Anuncio grupal
+model Anuncio {
+  id           String   @id @default(cuid())
+  titulo       String
+  contenido    String
+  creador      Usuario  @relation("creador", fields: [creadorId], references: [id])
+  creadorId    String
+  curso        Curso?   @relation(fields: [cursoId], references: [id])
+  cursoId      String?  // null = todos los cursos
+  destinatario String   @default("todos") // "todos" | "docentes" | "padres"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([cursoId, createdAt])
+  @@map("anuncios")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId String   @unique
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@map("push_subscriptions")
+}
