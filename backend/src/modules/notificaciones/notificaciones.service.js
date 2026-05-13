@@ -36,6 +36,62 @@ export async function enviarNotificacion(usuarioId, payload) {
   }
 }
 
+// Resuelve los IDs de usuarios que deben recibir la notificación
+// según el contexto de la creación (curso, alumno, destinatario)
+async function resolverDestinatarios({ cursoId, alumnoId, destinatario = 'todos', excluirId }) {
+  let ids = [];
+
+  if (alumnoId) {
+    // Evento/tarea de un alumno específico → solo sus papas
+    const relaciones = await prisma.papaAlumno.findMany({
+      where: { alumnoId },
+      select: { papaId: true },
+    });
+    ids = relaciones.map((r) => r.papaId);
+  } else if (cursoId) {
+    // Contenido de un curso → papas y/o docentes según destinatario
+    if (destinatario !== 'docentes') {
+      const alumnos = await prisma.alumno.findMany({
+        where: { cursoId, activo: true },
+        include: { padres: { select: { papaId: true } } },
+      });
+      alumnos.forEach((a) => a.padres.forEach((p) => ids.push(p.papaId)));
+    }
+    if (destinatario !== 'padres') {
+      const asignaciones = await prisma.cursoDocente.findMany({
+        where: { cursoId },
+        select: { docenteId: true },
+      });
+      asignaciones.forEach((a) => ids.push(a.docenteId));
+    }
+  } else {
+    // General: sin curso ni alumno
+    const rolFiltro =
+      destinatario === 'padres'   ? { rol: 'papa' } :
+      destinatario === 'docentes' ? { rol: { in: ['docente', 'admin', 'director', 'secretaria'] } } :
+      {};                          // 'todos' → sin filtro de rol
+    const usuarios = await prisma.usuario.findMany({
+      where: { activo: true, ...rolFiltro },
+      select: { id: true },
+    });
+    ids = usuarios.map((u) => u.id);
+  }
+
+  // Eliminar duplicados y al creador
+  return [...new Set(ids)].filter((id) => id !== excluirId);
+}
+
+// Notifica a todos los involucrados cuando se crea contenido (tarea/anuncio/evento)
+export async function notificarCreacion({ cursoId, alumnoId, destinatario, creadorId, payload }) {
+  try {
+    const ids = await resolverDestinatarios({ cursoId, alumnoId, destinatario, excluirId: creadorId });
+    if (!ids.length) return;
+    Promise.allSettled(ids.map((id) => enviarNotificacion(id, payload))).catch(() => {});
+  } catch {
+    // No bloquear la creación si la notificación falla
+  }
+}
+
 export async function enviarATodos(payload) {
   const subs = await prisma.pushSubscription.findMany({ include: { usuario: true } });
   const resultados = await Promise.allSettled(

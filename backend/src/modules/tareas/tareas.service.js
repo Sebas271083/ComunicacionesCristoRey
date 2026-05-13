@@ -2,6 +2,7 @@ import { prisma } from '../../config/database.js';
 import { isPrivilegiado } from '../../utils/roles.js';
 import { registrarAudit } from '../../utils/audit.js';
 import { cursoIdsDelDocente } from '../cursos/cursos.service.js';
+import { notificarCreacion } from '../notificaciones/notificaciones.service.js';
 
 const PUEDE_EDITAR_AJENO = ['admin', 'director'];
 
@@ -68,7 +69,7 @@ export async function crear({ titulo, descripcion, fechaVencimiento, creadorId, 
     const ids = await cursoIdsDelDocente(creadorId);
     if (!ids.includes(cursoId)) throw new Error('No tenés asignación en ese curso');
   }
-  return prisma.tarea.create({
+  const tarea = await prisma.tarea.create({
     data: {
       titulo,
       descripcion,
@@ -79,6 +80,19 @@ export async function crear({ titulo, descripcion, fechaVencimiento, creadorId, 
     },
     include: includeBase,
   });
+
+  notificarCreacion({
+    cursoId: tarea.cursoId,
+    destinatario: tarea.destinatario,
+    creadorId,
+    payload: {
+      title: `Nueva tarea: ${tarea.titulo}`,
+      body: tarea.descripcion ?? `Vence ${new Date(tarea.fechaVencimiento).toLocaleDateString('es-AR')}`,
+      url: '/tareas',
+    },
+  });
+
+  return tarea;
 }
 
 export async function actualizar(id, { titulo, descripcion, fechaVencimiento, cursoId, destinatario }, userId, rol) {

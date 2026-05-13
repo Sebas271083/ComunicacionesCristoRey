@@ -2,6 +2,7 @@ import { prisma } from '../../config/database.js';
 import { isPrivilegiado } from '../../utils/roles.js';
 import { registrarAudit } from '../../utils/audit.js';
 import { cursoIdsDelDocente } from '../cursos/cursos.service.js';
+import { notificarCreacion } from '../notificaciones/notificaciones.service.js';
 
 const PUEDE_EDITAR_AJENO = ['admin', 'director'];
 
@@ -87,7 +88,7 @@ export async function crear({ titulo, descripcion, fecha, tipo, creadorId, curso
     const ids = await cursoIdsDelDocente(creadorId);
     if (!ids.includes(cursoId)) throw new Error('No tenés asignación en ese curso');
   }
-  return prisma.evento.create({
+  const evento = await prisma.evento.create({
     data: {
       titulo,
       descripcion,
@@ -100,6 +101,20 @@ export async function crear({ titulo, descripcion, fecha, tipo, creadorId, curso
     },
     include: includeBase,
   });
+
+  notificarCreacion({
+    cursoId: evento.cursoId,
+    alumnoId: evento.alumnoId,
+    destinatario: evento.destinatario,
+    creadorId,
+    payload: {
+      title: `Nuevo evento: ${evento.titulo}`,
+      body: `${new Date(evento.fecha).toLocaleDateString('es-AR')}${evento.descripcion ? ` · ${evento.descripcion}` : ''}`,
+      url: '/calendario',
+    },
+  });
+
+  return evento;
 }
 
 export async function actualizar(id, datos, userId, rol) {
