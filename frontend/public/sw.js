@@ -1,15 +1,17 @@
-const CACHE_NAME = 'educhat-v1';
+// Incrementar CACHE_NAME en cada deploy para invalidar el cache anterior
+const CACHE_NAME = 'educhat-v2';
 const STATIC_ASSETS = ['/', '/chat', '/tareas', '/calendario', '/perfil'];
 
-// Instalación: cachear assets estáticos
+// Instalación: cachear assets estáticos y esperar confirmación del usuario
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
-  self.skipWaiting();
+  // NO llamar self.skipWaiting() aquí:
+  // el nuevo SW queda en estado "waiting" hasta que el usuario confirme la actualización.
 });
 
-// Activación: limpiar caches viejos
+// Activación: limpiar caches de versiones anteriores
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -19,16 +21,20 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first para API, cache-first para assets
+// Fetch: network-first para API, cache-first para assets estáticos
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // API: siempre network, sin cache
   if (url.pathname.startsWith('/api')) {
-    event.respondWith(fetch(request).catch(() => new Response('{"ok":false,"error":"Sin conexión"}', {
-      headers: { 'Content-Type': 'application/json' },
-    })));
+    event.respondWith(
+      fetch(request).catch(() =>
+        new Response('{"ok":false,"error":"Sin conexión"}', {
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
     return;
   }
 
@@ -36,15 +42,24 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok && request.method === 'GET') {
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
-        }
-        return response;
-      }).catch(() => caches.match('/'));
+      return fetch(request)
+        .then((response) => {
+          if (response.ok && request.method === 'GET') {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/'));
     })
   );
+});
+
+// Mensaje desde el cliente: activar el nuevo SW inmediatamente
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Notificaciones push
@@ -61,7 +76,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Click en notificación
+// Click en notificación push
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(

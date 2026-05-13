@@ -209,7 +209,9 @@ export async function papasDisponiblesParaDocente(docenteId) {
     if (!cursosMap.has(key)) cursosMap.set(key, { ...alumno.curso, papas: new Map() });
     for (const pa of alumno.padres) {
       if (!cursosMap.get(key).papas.has(pa.papaId)) {
-        cursosMap.get(key).papas.set(pa.papaId, pa.papa);
+        cursosMap.get(key).papas.set(pa.papaId, { ...pa.papa, hijos: [alumno.nombre] });
+      } else {
+        cursosMap.get(key).papas.get(pa.papaId).hijos.push(alumno.nombre);
       }
     }
   }
@@ -217,7 +219,10 @@ export async function papasDisponiblesParaDocente(docenteId) {
   return Array.from(cursosMap.values()).map((c) => ({
     id: c.id,
     nombre: c.nombre,
-    papas: Array.from(c.papas.values()),
+    papas: Array.from(c.papas.values()).map(({ hijos, ...papa }) => ({
+      ...papa,
+      info: `padre/madre de ${hijos.join(' y ')}`,
+    })),
   }));
 }
 

@@ -5,12 +5,8 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import App from './App.jsx';
 import './index.css';
 
-// Registrar Service Worker (prod y dev para habilitar push en ambos entornos)
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(console.error);
-  });
-}
+// El SW es registrado por useServiceWorker (App.jsx) para poder
+// detectar actualizaciones y mostrar el banner de notificación.
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

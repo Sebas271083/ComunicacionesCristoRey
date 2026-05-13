@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
+import { useServiceWorker } from './hooks/useServiceWorker.js';
+import { UpdateNotification } from './components/UpdateNotification.jsx';
 import { LoginPage } from './modules/auth/LoginPage.jsx';
 import { RegisterPage } from './modules/auth/RegisterPage.jsx';
 import { ChatPage } from './modules/chat/ChatPage.jsx';
@@ -37,8 +39,12 @@ function AdminRoute({ children }) {
 }
 
 export default function App() {
+  const { updateAvailable, updateServiceWorker } = useServiceWorker();
+
   return (
-    <Routes>
+    <>
+      <UpdateNotification available={updateAvailable} onUpdate={updateServiceWorker} />
+      <Routes>
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
       <Route path="/tareas" element={<PrivateRoute><TasksPage /></PrivateRoute>} />
@@ -48,5 +54,6 @@ export default function App() {
       <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="*" element={<Navigate to="/chat" replace />} />
     </Routes>
+    </>
   );
 }
