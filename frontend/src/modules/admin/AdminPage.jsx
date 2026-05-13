@@ -15,11 +15,11 @@ import {
 const CICLO_ACTUAL = new Date().getFullYear();
 
 const ROL_BADGE = {
-  admin:      'badge-error',
-  director:   'badge-warning',
+  admin: 'badge-error',
+  director: 'badge-warning',
   secretaria: 'badge-info',
-  docente:    'badge-success',
-  papa:       'badge-ghost',
+  docente: 'badge-success',
+  papa: 'badge-ghost',
 };
 
 const ROLES_CREABLES = ['docente', 'papa', 'director', 'secretaria', 'admin'];
@@ -246,43 +246,43 @@ function TabAlumnos() {
       {loading
         ? <div className="flex justify-center py-8"><span className="loading loading-spinner text-primary" /></div>
         : <div className="flex flex-col gap-2">
-            {alumnos.map((a) => (
-              <div key={a.id} className="bg-base-100 rounded-xl px-3 py-2.5 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center flex-shrink-0">
-                    <IconSchool size={16} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{a.nombre}</p>
-                    <p className="text-xs text-base-content/50">{a.curso?.nombre ?? '—'}</p>
-                  </div>
-                  <button className="btn btn-ghost btn-xs gap-1 text-info"
-                    onClick={() => { setEditForm({ cursoId: a.cursoId ?? '' }); setModal({ type: 'editar', alumno: a }); }}>
-                    <IconPencil size={13} />
-                  </button>
-                  <button className="btn btn-ghost btn-xs gap-1 text-primary"
-                    onClick={() => { setVincForm({ papaId: '' }); setModal({ type: 'vincular', alumno: a }); }}>
-                    <IconLink size={13} /> Padre
-                  </button>
-                  <button className="btn btn-ghost btn-xs text-error" onClick={() => handleEliminar(a.id)}>
-                    <IconTrash size={14} />
-                  </button>
+          {alumnos.map((a) => (
+            <div key={a.id} className="bg-base-100 rounded-xl px-3 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center flex-shrink-0">
+                  <IconSchool size={16} />
                 </div>
-                {a.padres?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2 pl-10">
-                    {a.padres.map((p) => (
-                      <span key={p.papaId} className="badge badge-sm badge-ghost gap-1">
-                        <IconUser size={10} /> {p.papa?.nombre}
-                        <button className="ml-0.5 hover:text-error" onClick={() => handleDesvincular(a.id, p.papaId)}>
-                          <IconLinkOff size={10} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{a.nombre}</p>
+                  <p className="text-xs text-base-content/50">{a.curso?.nombre ?? '—'}</p>
+                </div>
+                <button className="btn btn-ghost btn-xs gap-1 text-info"
+                  onClick={() => { setEditForm({ cursoId: a.cursoId ?? '' }); setModal({ type: 'editar', alumno: a }); }}>
+                  <IconPencil size={13} />
+                </button>
+                <button className="btn btn-ghost btn-xs gap-1 text-primary"
+                  onClick={() => { setVincForm({ papaId: '' }); setModal({ type: 'vincular', alumno: a }); }}>
+                  <IconLink size={13} /> Padre
+                </button>
+                <button className="btn btn-ghost btn-xs text-error" onClick={() => handleEliminar(a.id)}>
+                  <IconTrash size={14} />
+                </button>
               </div>
-            ))}
-          </div>
+              {a.padres?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2 pl-10">
+                  {a.padres.map((p) => (
+                    <span key={p.papaId} className="badge badge-sm badge-ghost gap-1">
+                      <IconUser size={10} /> {p.papa?.nombre}
+                      <button className="ml-0.5 hover:text-error" onClick={() => handleDesvincular(a.id, p.papaId)}>
+                        <IconLinkOff size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       }
 
       {modal === 'nuevo' && (
@@ -428,48 +428,48 @@ function TabCursos() {
       {loading
         ? <div className="flex justify-center py-8"><span className="loading loading-spinner text-primary" /></div>
         : <div className="flex flex-col gap-2">
-            {cursos.map((c) => (
-              <div key={c.id} className="bg-base-100 rounded-xl shadow-sm overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
-                  onClick={() => setExpandido(expandido === c.id ? null : c.id)}>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                    <IconBook size={16} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{c.nombre}</p>
-                    <p className="text-xs text-base-content/50">
-                      {c.docentes?.length ?? 0} {c.docentes?.length === 1 ? 'docente' : 'docentes'}
-                      {' · '}{c.alumnos ?? 0} alumnos
-                    </p>
-                  </div>
-                  <button className="btn btn-ghost btn-xs gap-1 text-primary"
-                    onClick={(e) => { e.stopPropagation(); setAsigForm({ docenteId: '' }); setModal({ type: 'asignar', curso: c }); }}>
-                    <IconLink size={13} /> Docente
-                  </button>
-                  <button className="btn btn-ghost btn-xs text-error" onClick={(e) => { e.stopPropagation(); handleEliminarCurso(c.id); }}>
-                    <IconTrash size={14} />
-                  </button>
-                  <IconChevronDown size={14} className={`text-base-content/40 transition-transform ${expandido === c.id ? 'rotate-180' : ''}`} />
+          {cursos.map((c) => (
+            <div key={c.id} className="bg-base-100 rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+                onClick={() => setExpandido(expandido === c.id ? null : c.id)}>
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                  <IconBook size={16} />
                 </div>
-
-                {expandido === c.id && c.docentes?.length > 0 && (
-                  <div className="border-t border-base-200 px-3 py-2 flex flex-col gap-1">
-                    {c.docentes.map((d) => (
-                      <div key={d.id} className="flex items-center gap-2 text-sm">
-                        <IconUser size={12} className="text-base-content/40" />
-                        <span className="flex-1">{d.docente?.nombre}</span>
-                        {d.tipo === 'titular' && <span className="badge badge-xs badge-primary">Titular</span>}
-                        {d.materia && <span className="badge badge-xs badge-ghost">{d.materia?.nombre}</span>}
-                        <button className="btn btn-ghost btn-xs text-error" onClick={() => handleQuitarDocente(d.id)}>
-                          <IconLinkOff size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{c.nombre}</p>
+                  <p className="text-xs text-base-content/50">
+                    {c.docentes?.length ?? 0} {c.docentes?.length === 1 ? 'docente' : 'docentes'}
+                    {' · '}{c.alumnos ?? 0} alumnos
+                  </p>
+                </div>
+                <button className="btn btn-ghost btn-xs gap-1 text-primary"
+                  onClick={(e) => { e.stopPropagation(); setAsigForm({ docenteId: '' }); setModal({ type: 'asignar', curso: c }); }}>
+                  <IconLink size={13} /> Docente
+                </button>
+                <button className="btn btn-ghost btn-xs text-error" onClick={(e) => { e.stopPropagation(); handleEliminarCurso(c.id); }}>
+                  <IconTrash size={14} />
+                </button>
+                <IconChevronDown size={14} className={`text-base-content/40 transition-transform ${expandido === c.id ? 'rotate-180' : ''}`} />
               </div>
-            ))}
-          </div>
+
+              {expandido === c.id && c.docentes?.length > 0 && (
+                <div className="border-t border-base-200 px-3 py-2 flex flex-col gap-1">
+                  {c.docentes.map((d) => (
+                    <div key={d.id} className="flex items-center gap-2 text-sm">
+                      <IconUser size={12} className="text-base-content/40" />
+                      <span className="flex-1">{d.docente?.nombre}</span>
+                      {d.tipo === 'titular' && <span className="badge badge-xs badge-primary">Titular</span>}
+                      {d.materia && <span className="badge badge-xs badge-ghost">{d.materia?.nombre}</span>}
+                      <button className="btn btn-ghost btn-xs text-error" onClick={() => handleQuitarDocente(d.id)}>
+                        <IconLinkOff size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       }
 
       {modal === 'nuevo' && (
@@ -526,9 +526,9 @@ function TabCursos() {
 // ── Tab: Auditoría ────────────────────────────────────────────────────────────
 
 const RECURSO_BADGE = {
-  tarea:    'badge-primary',
-  anuncio:  'badge-secondary',
-  evento:   'badge-info',
+  tarea: 'badge-primary',
+  anuncio: 'badge-secondary',
+  evento: 'badge-info',
 };
 
 function TabAuditoria() {
@@ -538,7 +538,16 @@ function TabAuditoria() {
 
   useEffect(() => {
     auditService.listar({ limit: 100 })
-      .then(setLogs)
+      .then((res) => {
+        const lista = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+            ? res.data
+            : [];
+
+        setLogs(lista);
+      })
+      .catch(() => setLogs([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -568,12 +577,12 @@ function TabAuditoria() {
 
           {expandido === log.id && (
             <div className="border-t border-base-200 px-3 py-2 flex flex-col gap-1.5">
-              {Object.entries(log.detalle).map(([campo, { antes, despues }]) => (
+              {Object.entries(log.detalle || {}).map(([campo, cambio]) => (
                 <div key={campo} className="text-xs">
                   <span className="font-medium text-base-content/60 capitalize">{campo}:</span>{' '}
-                  <span className="text-error line-through">{String(antes ?? '—')}</span>
+                  <span className="text-error line-through">{String(cambio?.antes ?? '—')}</span>
                   {' → '}
-                  <span className="text-success">{String(despues ?? '—')}</span>
+                  <span className="text-success">{String(cambio?.despues ?? '—')}</span>
                 </div>
               ))}
             </div>
@@ -587,10 +596,10 @@ function TabAuditoria() {
 // ── Página principal ──────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: 'usuarios',   label: 'Usuarios',  icon: IconUser },
-  { key: 'alumnos',    label: 'Alumnos',   icon: IconSchool },
-  { key: 'cursos',     label: 'Cursos',    icon: IconBook },
-  { key: 'auditoria',  label: 'Auditoría', icon: IconHistory },
+  { key: 'usuarios', label: 'Usuarios', icon: IconUser },
+  { key: 'alumnos', label: 'Alumnos', icon: IconSchool },
+  { key: 'cursos', label: 'Cursos', icon: IconBook },
+  { key: 'auditoria', label: 'Auditoría', icon: IconHistory },
 ];
 
 export function AdminPage() {
@@ -604,9 +613,8 @@ export function AdminPage() {
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium transition-colors ${
-                tab === key ? 'text-primary border-b-2 border-primary' : 'text-base-content/50'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium transition-colors ${tab === key ? 'text-primary border-b-2 border-primary' : 'text-base-content/50'
+                }`}
               onClick={() => setTab(key)}
             >
               <Icon size={15} /> {label}
@@ -614,9 +622,9 @@ export function AdminPage() {
           ))}
         </div>
 
-        {tab === 'usuarios'  && <TabUsuarios />}
-        {tab === 'alumnos'   && <TabAlumnos />}
-        {tab === 'cursos'    && <TabCursos />}
+        {tab === 'usuarios' && <TabUsuarios />}
+        {tab === 'alumnos' && <TabAlumnos />}
+        {tab === 'cursos' && <TabCursos />}
         {tab === 'auditoria' && <TabAuditoria />}
       </div>
     </Layout>
