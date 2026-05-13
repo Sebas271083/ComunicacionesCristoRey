@@ -146,7 +146,24 @@ export async function contactosDisponibles(userId, rol) {
       orderBy: { nombre: 'asc' },
     });
     const staff  = todos.filter((u) => u.rol !== 'papa');
-    const padres = todos.filter((u) => u.rol === 'papa');
+    const papasRaw = todos.filter((u) => u.rol === 'papa');
+
+    // Enriquecer papas con los nombres de sus hijos
+    const relaciones = await prisma.papaAlumno.findMany({
+      where: { papaId: { in: papasRaw.map((p) => p.id) } },
+      include: { alumno: { select: { nombre: true } } },
+    });
+    const alumnosPorPapa = {};
+    for (const r of relaciones) {
+      (alumnosPorPapa[r.papaId] ??= []).push(r.alumno.nombre);
+    }
+    const padres = papasRaw.map((p) => ({
+      ...p,
+      info: alumnosPorPapa[p.id]?.length
+        ? `padre/madre de ${alumnosPorPapa[p.id].join(' y ')}`
+        : 'Padre/Madre',
+    }));
+
     return [
       { tipo: 'lista', nombre: 'Personal docente y administrativo', items: staff },
       { tipo: 'lista', nombre: 'Padres', items: padres },
