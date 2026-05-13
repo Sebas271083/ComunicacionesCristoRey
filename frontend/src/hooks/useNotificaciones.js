@@ -8,9 +8,17 @@ export function useNotificaciones() {
   useEffect(() => {
     if (!notificationService.isSupported()) { setEstado('unsupported'); return; }
     const perm = Notification.permission;
-    if (perm === 'granted') setEstado('granted');
-    else if (perm === 'denied') setEstado('denied');
-    else setEstado('pending');
+    if (perm === 'granted') {
+      setEstado('granted');
+      // Re-sincronizar suscripción con el backend en cada carga de la app.
+      // Cubre el caso donde la DB fue reseteada, el usuario cambió de dispositivo,
+      // o la suscripción fue eliminada por un 410 del servidor push.
+      notificationService.suscribir().catch(() => {});
+    } else if (perm === 'denied') {
+      setEstado('denied');
+    } else {
+      setEstado('pending');
+    }
   }, []);
 
   const activar = async () => {
