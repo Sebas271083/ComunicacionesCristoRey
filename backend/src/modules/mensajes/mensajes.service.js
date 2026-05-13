@@ -95,7 +95,9 @@ export async function enviar({ contenido, enviadorId, receptorId }) {
     title: mensaje.enviador.nombre,
     body: preview,
     url: '/chat',
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error('ERROR PUSH:', err);
+  });
 
   return mensaje;
 }
@@ -111,7 +113,7 @@ export async function enviarMasivo({ contenido, enviadorId, receptorIds }) {
   // Push a todos los receptores en paralelo
   const preview = contenido.length > 60 ? contenido.slice(0, 57) + '...' : contenido;
   const payload = { title: enviador?.nombre ?? 'Nuevo mensaje', body: preview, url: '/chat' };
-  Promise.allSettled(receptorIds.map((id) => enviarNotificacion(id, payload))).catch(() => {});
+  Promise.allSettled(receptorIds.map((id) => enviarNotificacion(id, payload))).catch(() => { });
 
   return { count: receptorIds.length };
 }
@@ -145,7 +147,7 @@ export async function contactosDisponibles(userId, rol) {
       select: { id: true, nombre: true, rol: true },
       orderBy: { nombre: 'asc' },
     });
-    const staff  = todos.filter((u) => u.rol !== 'papa');
+    const staff = todos.filter((u) => u.rol !== 'papa');
     const papasRaw = todos.filter((u) => u.rol === 'papa');
 
     // Enriquecer papas con los nombres de sus hijos
@@ -194,9 +196,9 @@ export async function gruposMasivo(userId, rol) {
     ]);
 
     const grupos = [
-      { id: 'todos',   label: 'Toda la institución',              ids: todos.map((u) => u.id) },
-      { id: 'staff',   label: 'Solo docentes y administrativos',  ids: staff.map((u) => u.id) },
-      { id: 'padres',  label: 'Todos los padres',                 ids: padresRaw.map((u) => u.id) },
+      { id: 'todos', label: 'Toda la institución', ids: todos.map((u) => u.id) },
+      { id: 'staff', label: 'Solo docentes y administrativos', ids: staff.map((u) => u.id) },
+      { id: 'padres', label: 'Todos los padres', ids: padresRaw.map((u) => u.id) },
     ];
 
     for (const curso of cursos) {
