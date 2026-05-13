@@ -26,6 +26,30 @@ export async function getConversaciones(userId) {
     }
   }
 
+  // Enriquecer interlocutores papa con los nombres de sus hijos
+  const papaIds = Array.from(conversacionesMap.values())
+    .filter((c) => c.interlocutor.rol === 'papa')
+    .map((c) => c.interlocutor.id);
+
+  if (papaIds.length) {
+    const relaciones = await prisma.papaAlumno.findMany({
+      where: { papaId: { in: papaIds } },
+      include: { alumno: { select: { nombre: true } } },
+    });
+    const alumnosPorPapa = {};
+    for (const r of relaciones) {
+      (alumnosPorPapa[r.papaId] ??= []).push(r.alumno.nombre);
+    }
+    for (const conv of conversacionesMap.values()) {
+      if (conv.interlocutor.rol === 'papa') {
+        const hijos = alumnosPorPapa[conv.interlocutor.id] ?? [];
+        conv.interlocutor.info = hijos.length
+          ? `padre/madre de ${hijos.join(' y ')}`
+          : 'Padre/Madre';
+      }
+    }
+  }
+
   const noLeidos = await prisma.mensaje.groupBy({
     by: ['enviadorId'],
     where: { receptorId: userId, leido: false },

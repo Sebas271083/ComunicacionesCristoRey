@@ -10,18 +10,20 @@ export function useServiceWorker() {
     let reloading = false;
 
     const onControllerChange = () => {
-      // Evitar recargas en loop (raro, pero posible si hay múltiples tabs)
       if (reloading) return;
       reloading = true;
       window.location.reload();
     };
 
+    const markUpdate = (worker) => {
+      setWaitingWorker(worker);
+      setUpdateAvailable(true);
+    };
+
     const trackInstalling = (worker) => {
       worker.addEventListener('statechange', () => {
-        // 'installed' + hay un controlador activo = nuevo SW en waiting
         if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-          setWaitingWorker(worker);
-          setUpdateAvailable(true);
+          markUpdate(worker);
         }
       });
     };
@@ -30,20 +32,28 @@ export function useServiceWorker() {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
 
-        // Caso A: ya había un SW en waiting antes de que la página cargara
+        // Caso A: SW ya estaba en waiting al cargar la página
         if (registration.waiting) {
-          setWaitingWorker(registration.waiting);
-          setUpdateAvailable(true);
+          markUpdate(registration.waiting);
+          return;
         }
 
-        // Caso B: se descarga una nueva versión mientras la página está abierta
+        // Caso B: SW todavía instalándose cuando la página cargó
+        if (registration.installing) {
+          trackInstalling(registration.installing);
+        }
+
+        // Caso C: nueva versión descargada mientras la página está abierta
         registration.addEventListener('updatefound', () => {
           if (registration.installing) {
             trackInstalling(registration.installing);
           }
         });
 
-        // Verificar actualizaciones cada vez que la pestaña recupera el foco
+        // Forzar verificación inmediata contra el servidor
+        registration.update().catch(() => {});
+
+        // Re-verificar cada vez que el usuario vuelve a la app
         const onVisibilityChange = () => {
           if (document.visibilityState === 'visible') {
             registration.update().catch(() => {});
@@ -59,7 +69,6 @@ export function useServiceWorker() {
       }
     };
 
-    // Caso C: el SW en waiting llamó skipWaiting → recargar la página
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
     let cleanup;
@@ -71,7 +80,6 @@ export function useServiceWorker() {
     };
   }, []);
 
-  // Enviar mensaje al SW en waiting para que se active
   const updateServiceWorker = () => {
     waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
   };
