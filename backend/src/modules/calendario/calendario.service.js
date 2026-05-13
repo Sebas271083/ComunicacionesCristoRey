@@ -1,5 +1,9 @@
 import { prisma } from '../../config/database.js';
 import { isPrivilegiado } from '../../utils/roles.js';
+import { registrarAudit } from '../../utils/audit.js';
+import { cursoIdsDelDocente } from '../cursos/cursos.service.js';
+
+const PUEDE_EDITAR_AJENO = ['admin', 'director'];
 
 const includeBase = {
   creador: { select: { id: true, nombre: true } },
@@ -78,7 +82,11 @@ export async function listar({ mes, anio } = {}, userId, rol) {
   });
 }
 
-export async function crear({ titulo, descripcion, fecha, tipo, creadorId, cursoId, alumnoId, destinatario }) {
+export async function crear({ titulo, descripcion, fecha, tipo, creadorId, cursoId, alumnoId, destinatario }, rol) {
+  if (rol === 'docente' && cursoId) {
+    const ids = await cursoIdsDelDocente(creadorId);
+    if (!ids.includes(cursoId)) throw new Error('No tenés asignación en ese curso');
+  }
   return prisma.evento.create({
     data: {
       titulo,
@@ -97,13 +105,31 @@ export async function crear({ titulo, descripcion, fecha, tipo, creadorId, curso
 export async function actualizar(id, datos, userId, rol) {
   const evento = await prisma.evento.findUnique({ where: { id } });
   if (!evento) throw new Error('Evento no encontrado');
-  if (evento.creadorId !== userId && !isPrivilegiado(rol)) throw new Error('Sin permiso');
+  if (evento.creadorId !== userId && !PUEDE_EDITAR_AJENO.includes(rol)) throw new Error('Sin permiso');
+  if (evento.fecha <= new Date()) throw new Error('No se puede editar un evento pasado');
 
-  return prisma.evento.update({
-    where: { id },
-    data: { ...datos, ...(datos.fecha && { fecha: new Date(datos.fecha) }) },
-    include: includeBase,
+  const data = {
+    ...(datos.titulo       !== undefined && { titulo: datos.titulo }),
+    ...(datos.descripcion  !== undefined && { descripcion: datos.descripcion }),
+    ...(datos.tipo         !== undefined && { tipo: datos.tipo }),
+    ...(datos.fecha                      && { fecha: new Date(datos.fecha) }),
+    ...(datos.cursoId      !== undefined && { cursoId: datos.cursoId || null }),
+    ...(datos.alumnoId     !== undefined && { alumnoId: datos.alumnoId || null }),
+    ...(datos.destinatario !== undefined && { destinatario: datos.destinatario }),
+  };
+
+  const actualizado = await prisma.evento.update({ where: { id }, data, include: includeBase });
+
+  registrarAudit({
+    usuarioId: userId,
+    recurso: 'evento',
+    recursoId: id,
+    titulo: evento.titulo,
+    antes: { titulo: evento.titulo, descripcion: evento.descripcion, tipo: evento.tipo, destinatario: evento.destinatario },
+    despues: { titulo: actualizado.titulo, descripcion: actualizado.descripcion, tipo: actualizado.tipo, destinatario: actualizado.destinatario },
   });
+
+  return actualizado;
 }
 
 export async function eliminar(id, userId, rol) {

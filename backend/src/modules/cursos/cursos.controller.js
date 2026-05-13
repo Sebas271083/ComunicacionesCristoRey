@@ -56,3 +56,11 @@ export async function cursosDelDocente(req, res, next) {
     res.json({ ok: true, data: await cursosService.cursosDelDocente(req.user.userId) });
   } catch (err) { next(err); }
 }
+
+export async function resumenNuevoCiclo(req, res, next) {
+  try {
+    const anio = parseInt(req.params.anio);
+    if (!anio || anio < 2020 || anio > 2100) return res.status(400).json({ ok: false, error: 'Año inválido' });
+    res.json({ ok: true, data: await cursosService.resumenNuevoCiclo(anio) });
+  } catch (err) { next(err); }
+}

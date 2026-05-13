@@ -14,9 +14,23 @@ export async function listar(req, res, next) {
 
 export async function crear(req, res, next) {
   try {
-    const anuncio = await anunciosService.crear({ ...req.body, creadorId: req.user.userId });
+    const anuncio = await anunciosService.crear({ ...req.body, creadorId: req.user.userId }, req.user.rol);
     res.status(201).json({ ok: true, data: anuncio });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.message === 'No tenés asignación en ese curso') return res.status(403).json({ ok: false, error: err.message });
+    next(err);
+  }
+}
+
+export async function actualizar(req, res, next) {
+  try {
+    const anuncio = await anunciosService.actualizar(req.params.id, req.body, req.user.userId, req.user.rol);
+    res.json({ ok: true, data: anuncio });
+  } catch (err) {
+    if (['Anuncio no encontrado', 'Sin permiso'].includes(err.message))
+      return res.status(403).json({ ok: false, error: err.message });
+    next(err);
+  }
 }
 
 export async function eliminar(req, res, next) {

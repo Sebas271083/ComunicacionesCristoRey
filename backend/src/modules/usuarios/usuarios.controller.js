@@ -34,6 +34,16 @@ export async function obtenerUsuario(req, res, next) {
   }
 }
 
+export async function crearUsuario(req, res, next) {
+  try {
+    const usuario = await usuariosService.crearUsuario(req.body);
+    res.status(201).json({ ok: true, data: usuario });
+  } catch (err) {
+    if (err.message === 'El email ya está registrado') return res.status(409).json({ ok: false, error: err.message });
+    next(err);
+  }
+}
+
 export async function desactivarUsuario(req, res, next) {
   try {
     const usuario = await usuariosService.desactivarUsuario(req.params.id);

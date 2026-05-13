@@ -48,19 +48,21 @@ async function main() {
     prisma.materia.create({ data: { nombre: 'Ciencias Sociales' } }),
   ]);
 
+  const ciclo = new Date().getFullYear();
+
   // --- Asignaciones docente → curso + materia ---
-  // 1° A: Ana enseña todo (maestra de grado)
+  // 1° A: Ana titular (maestra de grado)
   await prisma.cursoDocente.createMany({
     data: [
-      { cursoId: curso1A.id, docenteId: docente1.id, materiaId: matematica.id },
-      { cursoId: curso1A.id, docenteId: docente1.id, materiaId: lengua.id },
-      // 2° B: Carlos (maestro de grado)
-      { cursoId: curso2B.id, docenteId: docente2.id, materiaId: matematica.id },
-      { cursoId: curso2B.id, docenteId: docente2.id, materiaId: lengua.id },
-      // 5° A: docentes por materia
-      { cursoId: curso5A.id, docenteId: docente1.id, materiaId: matematica.id },
-      { cursoId: curso5A.id, docenteId: docente2.id, materiaId: ciencias.id },
-      { cursoId: curso5A.id, docenteId: docente3.id, materiaId: historia.id },
+      { cursoId: curso1A.id, docenteId: docente1.id, materiaId: matematica.id, tipo: 'titular', cicloLectivo: ciclo },
+      { cursoId: curso1A.id, docenteId: docente1.id, materiaId: lengua.id,     tipo: 'titular', cicloLectivo: ciclo },
+      // 2° B: Carlos titular
+      { cursoId: curso2B.id, docenteId: docente2.id, materiaId: matematica.id, tipo: 'titular', cicloLectivo: ciclo },
+      { cursoId: curso2B.id, docenteId: docente2.id, materiaId: lengua.id,     tipo: 'titular', cicloLectivo: ciclo },
+      // 5° A: docentes especiales por materia
+      { cursoId: curso5A.id, docenteId: docente1.id, materiaId: matematica.id, tipo: 'especial', cicloLectivo: ciclo },
+      { cursoId: curso5A.id, docenteId: docente2.id, materiaId: ciencias.id,   tipo: 'especial', cicloLectivo: ciclo },
+      { cursoId: curso5A.id, docenteId: docente3.id, materiaId: historia.id,   tipo: 'especial', cicloLectivo: ciclo },
     ],
   });
 

@@ -2,16 +2,75 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Layout } from '../../components/Layout/Layout.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { IconLogout, IconMail, IconShield, IconKey, IconCheck } from '@tabler/icons-react';
+import { IconLogout, IconMail, IconShield, IconKey, IconCheck, IconSchool, IconUser } from '@tabler/icons-react';
 import api from '../../services/api.js';
+import { cursosService } from '../../services/cursosService.js';
 
 const ROL_LABEL = { papa: 'Papá / Mamá', docente: 'Docente', admin: 'Administrador' };
+
+const TIPO_LABEL = { titular: 'Titular', especial: 'Especial' };
+const TIPO_BADGE = { titular: 'badge-primary', especial: 'badge-ghost' };
+
+function MisDocentes() {
+  const [hijos, setHijos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    cursosService.misCursos()
+      .then(setHijos)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-8"><span className="loading loading-spinner text-primary" /></div>;
+
+  if (hijos.length === 0) return (
+    <div className="flex flex-col items-center py-12 text-base-content/40 gap-2">
+      <IconSchool size={40} />
+      <p className="text-sm">Sin información de docentes aún</p>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      {hijos.map((h) => (
+        <div key={h.alumno.id}>
+          <div className="flex items-center gap-2 mb-2">
+            <IconUser size={14} className="text-base-content/50" />
+            <span className="font-semibold text-sm">{h.alumno.nombre}</span>
+            <span className="badge badge-sm badge-outline">{h.curso.nombre}</span>
+          </div>
+          {h.curso.docentes.length === 0 ? (
+            <p className="text-xs text-base-content/40 pl-5">Sin docentes asignados este ciclo</p>
+          ) : (
+            <div className="flex flex-col gap-1 pl-5">
+              {h.curso.docentes.map((d) => (
+                <div key={d.id} className="flex items-center gap-2 bg-base-100 rounded-xl px-3 py-2 shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 font-bold text-sm">
+                    {d.nombre.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{d.nombre}</p>
+                    {d.materia && <p className="text-xs text-base-content/50">{d.materia}</p>}
+                  </div>
+                  <span className={`badge badge-xs ${TIPO_BADGE[d.tipo] ?? 'badge-ghost'}`}>
+                    {TIPO_LABEL[d.tipo] ?? d.tipo}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState(searchParams.get('tab') === 'password' ? 'password' : 'info');
+  const initialTab = searchParams.get('tab') === 'password' ? 'password' : 'info';
+  const [tab, setTab] = useState(initialTab);
 
   // Cambio de contraseña
   const [passForm, setPassForm] = useState({ actual: '', nueva: '', confirmar: '' });
@@ -80,10 +139,17 @@ export function ProfilePage() {
           <button className={`tab flex-1 ${tab === 'info' ? 'tab-active' : ''}`} onClick={() => setTab('info')}>
             Info
           </button>
+          {user?.rol === 'papa' && (
+            <button className={`tab flex-1 ${tab === 'docentes' ? 'tab-active' : ''}`} onClick={() => setTab('docentes')}>
+              Docentes
+            </button>
+          )}
           <button className={`tab flex-1 ${tab === 'password' ? 'tab-active' : ''}`} onClick={() => setTab('password')}>
             Contraseña
           </button>
         </div>
+
+        {tab === 'docentes' && user?.rol === 'papa' && <MisDocentes />}
 
         {tab === 'info' && (
           <div className="card bg-base-100 shadow-sm">

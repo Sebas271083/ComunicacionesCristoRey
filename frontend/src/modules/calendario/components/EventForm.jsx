@@ -4,9 +4,10 @@ import { alumnosService } from '../../../services/alumnosService.js';
 
 const TIPOS = ['examen', 'reunion', 'evento', 'feriado'];
 
-export function EventForm({ onSubmit, onCancel, loading, cursos = [], puedeSegmentar = false }) {
+export function EventForm({ onSubmit, onCancel, loading, cursos = [], puedeSegmentar = false, initialValues = null }) {
   const hoy = format(new Date(), "yyyy-MM-dd'T'HH:mm");
-  const [form, setForm] = useState({
+  const editando = !!initialValues;
+  const [form, setForm] = useState(initialValues ?? {
     titulo: '',
     descripcion: '',
     fecha: '',
@@ -124,7 +125,7 @@ export function EventForm({ onSubmit, onCancel, loading, cursos = [], puedeSegme
       <div className="flex gap-2 mt-2">
         <button type="button" className="btn btn-ghost flex-1" onClick={onCancel}>Cancelar</button>
         <button type="submit" className="btn btn-primary flex-1" disabled={loading}>
-          {loading ? <span className="loading loading-spinner loading-sm" /> : 'Publicar evento'}
+          {loading ? <span className="loading loading-spinner loading-sm" /> : editando ? 'Guardar cambios' : 'Publicar evento'}
         </button>
       </div>
     </form>

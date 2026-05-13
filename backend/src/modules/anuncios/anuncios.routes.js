@@ -17,6 +17,7 @@ router.post(
   validateInput,
   controller.crear,
 );
+router.put('/:id',    requireRol(...PUEDE_PUBLICAR), controller.actualizar);
 router.delete('/:id', requireRol(...PUEDE_PUBLICAR), controller.eliminar);
 
 export default router;

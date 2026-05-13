@@ -4,7 +4,7 @@ import { anunciosService } from '../../services/anunciosService.js';
 import { cursosService } from '../../services/cursosService.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatRelativo } from '../../utils/formatDate.js';
-import { IconPlus, IconSpeakerphone, IconTrash, IconWorld, IconSchool } from '@tabler/icons-react';
+import { IconPlus, IconSpeakerphone, IconTrash, IconPencil, IconWorld, IconSchool } from '@tabler/icons-react';
 
 export function AnunciosPage() {
   const { user } = useAuth();
@@ -13,7 +13,11 @@ export function AnunciosPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [form, setForm] = useState({ titulo: '', contenido: '', cursoId: '', destinatario: 'todos' });
+
+  const puedeEditar = (anuncio) =>
+    anuncio.creador?.id === user.id || ['admin', 'director'].includes(user.rol);
 
   const PUEDE_CREAR = ['docente', 'admin', 'director', 'secretaria'];
   const puedeCrear = PUEDE_CREAR.includes(user.rol);
@@ -31,9 +35,9 @@ export function AnunciosPage() {
 
   useEffect(() => {
     if (puedeCrear && showForm) {
-      cursosService.listar().then(setCursos).catch(() => {});
+      cursosService.listarParaForm(user.rol).then(setCursos).catch(() => {});
     }
-  }, [showForm, puedeCrear]);
+  }, [showForm, puedeCrear, user.rol]);
 
   const handleChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -53,6 +57,25 @@ export function AnunciosPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const guardarEdicion = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const actualizado = await anunciosService.actualizar(editando.id, {
+        titulo: form.titulo, contenido: form.contenido,
+        cursoId: form.cursoId || null, destinatario: form.destinatario,
+      });
+      setAnuncios((prev) => prev.map((a) => a.id === editando.id ? actualizado : a));
+      setEditando(null);
+    } finally { setSaving(false); }
+  };
+
+  const abrirEdicion = (anuncio) => {
+    setForm({ titulo: anuncio.titulo, contenido: anuncio.contenido, cursoId: anuncio.cursoId ?? '', destinatario: anuncio.destinatario });
+    setEditando(anuncio);
+    cursosService.listarParaForm(user.rol).then(setCursos).catch(() => {});
   };
 
   const eliminar = async (id) => {
@@ -113,11 +136,18 @@ export function AnunciosPage() {
                         {anuncio.creador?.nombre} · {formatRelativo(anuncio.createdAt)}
                       </p>
                     </div>
-                    {(['admin','director','secretaria'].includes(user.rol) || anuncio.creador?.id === user.id) && (
-                      <button className="btn btn-ghost btn-xs text-error flex-shrink-0" onClick={() => eliminar(anuncio.id)}>
-                        <IconTrash size={16} />
-                      </button>
-                    )}
+                    <div className="flex gap-1">
+                      {puedeEditar(anuncio) && (
+                        <button className="btn btn-ghost btn-xs text-primary flex-shrink-0" onClick={() => abrirEdicion(anuncio)}>
+                          <IconPencil size={15} />
+                        </button>
+                      )}
+                      {(['admin','director','secretaria'].includes(user.rol) || anuncio.creador?.id === user.id) && (
+                        <button className="btn btn-ghost btn-xs text-error flex-shrink-0" onClick={() => eliminar(anuncio.id)}>
+                          <IconTrash size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -125,6 +155,50 @@ export function AnunciosPage() {
           </div>
         )}
       </div>
+
+      {editando && (
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Editar anuncio</h3>
+            <form onSubmit={guardarEdicion} className="flex flex-col gap-3">
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text font-medium">Título *</span></label>
+                <input name="titulo" type="text" className="input input-bordered"
+                  value={form.titulo} onChange={handleChange} required />
+              </div>
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text font-medium">Mensaje *</span></label>
+                <textarea name="contenido" className="textarea textarea-bordered" rows={4}
+                  value={form.contenido} onChange={handleChange} required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="form-control">
+                  <label className="label py-1"><span className="label-text font-medium">Curso</span></label>
+                  <select name="cursoId" className="select select-bordered select-sm" value={form.cursoId} onChange={handleChange}>
+                    <option value="">Todos los cursos</option>
+                    {cursos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </select>
+                </div>
+                <div className="form-control">
+                  <label className="label py-1"><span className="label-text font-medium">Para</span></label>
+                  <select name="destinatario" className="select select-bordered select-sm" value={form.destinatario} onChange={handleChange}>
+                    <option value="todos">Todos</option>
+                    <option value="padres">Solo padres</option>
+                    <option value="docentes">Solo docentes</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <button type="button" className="btn btn-ghost flex-1" onClick={() => setEditando(null)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary flex-1" disabled={saving}>
+                  {saving ? <span className="loading loading-spinner loading-sm" /> : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+          <div className="modal-backdrop" onClick={() => setEditando(null)} />
+        </dialog>
+      )}
 
       {showForm && (
         <dialog className="modal modal-open">

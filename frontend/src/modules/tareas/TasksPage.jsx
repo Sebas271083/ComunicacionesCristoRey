@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
 import { Layout } from '../../components/Layout/Layout.jsx';
 import { TaskCard } from './components/TaskCard.jsx';
 import { TaskForm } from './components/TaskForm.jsx';
@@ -14,10 +15,18 @@ export function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [filtro, setFiltro] = useState('todas');
 
   const PUEDE_CREAR = ['docente', 'admin', 'director', 'secretaria'];
   const puedeCrear = PUEDE_CREAR.includes(user.rol);
+
+  const puedeEditar = (tarea) => {
+    const esFutura = new Date(tarea.fechaVencimiento) > new Date();
+    return esFutura && (tarea.creador?.id === user.id || ['admin', 'director'].includes(user.rol));
+  };
+
+  const toInputDate = (dateStr) => format(new Date(dateStr), "yyyy-MM-dd'T'HH:mm");
 
   const cargar = useCallback(async () => {
     try {
@@ -31,8 +40,8 @@ export function TasksPage() {
   useEffect(() => { cargar(); }, [cargar]);
 
   useEffect(() => {
-    if (puedeCrear) cursosService.listar().then(setCursos).catch(() => {});
-  }, [puedeCrear]);
+    if (puedeCrear) cursosService.listarParaForm(user.rol).then(setCursos).catch(() => {});
+  }, [puedeCrear, user.rol]);
 
   const crear = async (formData) => {
     setSaving(true);
@@ -48,6 +57,15 @@ export function TasksPage() {
   const toggleCompletada = async (id) => {
     const actualizada = await taskService.toggleCompletada(id);
     setTareas((prev) => prev.map((t) => t.id === id ? actualizada : t));
+  };
+
+  const editar = async (formData) => {
+    setSaving(true);
+    try {
+      const actualizada = await taskService.actualizar(editando.id, formData);
+      setTareas((prev) => prev.map((t) => t.id === editando.id ? actualizada : t));
+      setEditando(null);
+    } finally { setSaving(false); }
   };
 
   const eliminar = async (id) => {
@@ -103,6 +121,11 @@ export function TasksPage() {
                 tarea={tarea}
                 onToggle={toggleCompletada}
                 onDelete={eliminar}
+                onEdit={puedeEditar(tarea) ? () => setEditando({
+                  ...tarea,
+                  fechaVencimiento: toInputDate(tarea.fechaVencimiento),
+                  cursoId: tarea.cursoId ?? '',
+                }) : null}
               />
             ))}
           </div>
@@ -116,6 +139,16 @@ export function TasksPage() {
             <TaskForm onSubmit={crear} onCancel={() => setShowForm(false)} loading={saving} cursos={cursos} />
           </div>
           <div className="modal-backdrop" onClick={() => setShowForm(false)} />
+        </dialog>
+      )}
+
+      {editando && (
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Editar tarea</h3>
+            <TaskForm onSubmit={editar} onCancel={() => setEditando(null)} loading={saving} cursos={cursos} initialValues={editando} />
+          </div>
+          <div className="modal-backdrop" onClick={() => setEditando(null)} />
         </dialog>
       )}
     </Layout>

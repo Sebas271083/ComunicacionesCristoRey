@@ -1,4 +1,4 @@
-import { IconTrash, IconSchool, IconUser, IconWorld } from '@tabler/icons-react';
+import { IconTrash, IconPencil, IconSchool, IconUser, IconWorld } from '@tabler/icons-react';
 import { formatFechaLarga, formatHora } from '../../../utils/formatDate.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 
@@ -18,7 +18,7 @@ const TIPO_BORDER = {
 
 const PUEDE_ELIMINAR = ['docente', 'admin', 'director', 'secretaria'];
 
-export function EventCard({ evento, onDelete }) {
+export function EventCard({ evento, onDelete, onEdit }) {
   const { user } = useAuth();
   const puedeEliminar = PUEDE_ELIMINAR.includes(user.rol);
 
@@ -63,11 +63,18 @@ export function EventCard({ evento, onDelete }) {
               {evento.creador && <span> · {evento.creador.nombre}</span>}
             </p>
           </div>
-          {puedeEliminar && (
-            <button className="btn btn-ghost btn-xs text-error flex-shrink-0" onClick={() => onDelete(evento.id)}>
-              <IconTrash size={16} />
-            </button>
-          )}
+          <div className="flex gap-1">
+            {onEdit && (
+              <button className="btn btn-ghost btn-xs text-primary flex-shrink-0" onClick={onEdit}>
+                <IconPencil size={15} />
+              </button>
+            )}
+            {puedeEliminar && (
+              <button className="btn btn-ghost btn-xs text-error flex-shrink-0" onClick={() => onDelete(evento.id)}>
+                <IconTrash size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

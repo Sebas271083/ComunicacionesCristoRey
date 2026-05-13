@@ -1,6 +1,16 @@
 import { prisma } from '../../config/database.js';
 import bcrypt from 'bcryptjs';
 
+export async function crearUsuario({ nombre, email, password, rol }) {
+  const existe = await prisma.usuario.findUnique({ where: { email } });
+  if (existe) throw new Error('El email ya está registrado');
+  const hash = await bcrypt.hash(password, 12);
+  return prisma.usuario.create({
+    data: { nombre, email, password: hash, rol },
+    select: { id: true, nombre: true, email: true, rol: true, createdAt: true },
+  });
+}
+
 export async function listarDocentes() {
   return prisma.usuario.findMany({
     where: { rol: 'docente', activo: true },

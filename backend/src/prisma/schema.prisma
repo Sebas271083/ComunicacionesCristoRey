@@ -25,6 +25,7 @@ model Usuario {
   subscripcion       PushSubscription?
   cursosDocente      CursoDocente[]
   hijos              PapaAlumno[]
+  auditLogs          AuditLog[]
 
   @@map("usuarios")
 }
@@ -58,16 +59,19 @@ model Materia {
 
 // Docente asignado a un curso con una materia
 model CursoDocente {
-  id        String   @id @default(cuid())
-  curso     Curso    @relation(fields: [cursoId], references: [id], onDelete: Cascade)
-  cursoId   String
-  docente   Usuario  @relation(fields: [docenteId], references: [id], onDelete: Cascade)
-  docenteId String
-  materia   Materia? @relation(fields: [materiaId], references: [id])
-  materiaId String?
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  curso        Curso    @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  cursoId      String
+  docente      Usuario  @relation(fields: [docenteId], references: [id], onDelete: Cascade)
+  docenteId    String
+  materia      Materia? @relation(fields: [materiaId], references: [id])
+  materiaId    String?
+  tipo         String   @default("especial") // "titular" | "especial"
+  cicloLectivo Int      @default(2025)
+  createdAt    DateTime @default(now())
 
-  @@unique([cursoId, docenteId, materiaId])
+  @@unique([cursoId, docenteId, materiaId, cicloLectivo])
+  @@index([docenteId, cicloLectivo])
   @@map("curso_docentes")
 }
 
@@ -164,6 +168,21 @@ model Anuncio {
 
   @@index([cursoId, createdAt])
   @@map("anuncios")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+  accion    String   // "editar"
+  recurso   String   // "tarea" | "anuncio" | "evento"
+  recursoId String
+  titulo    String
+  detalle   Json
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 model PushSubscription {

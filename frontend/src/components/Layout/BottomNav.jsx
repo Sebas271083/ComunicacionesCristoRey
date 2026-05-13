@@ -1,9 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { IconMessages, IconClipboardList, IconCalendar, IconSpeakerphone, IconUser } from '@tabler/icons-react';
+import { IconMessages, IconClipboardList, IconCalendar, IconSpeakerphone, IconUser, IconSettings } from '@tabler/icons-react';
 import { useChatStore } from '../../store/chatStore.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+
+const PRIVILEGIADOS = ['admin', 'director', 'secretaria'];
 
 export function BottomNav() {
   const unreadCount = useChatStore((s) => s.unreadCount);
+  const { user } = useAuth();
 
   const links = [
     {
@@ -15,7 +19,10 @@ export function BottomNav() {
     { to: '/tareas', icon: IconClipboardList, label: 'Tareas' },
     { to: '/calendario', icon: IconCalendar, label: 'Calendario' },
     { to: '/anuncios', icon: IconSpeakerphone, label: 'Anuncios' },
-    { to: '/perfil', icon: IconUser, label: 'Perfil' },
+    ...(PRIVILEGIADOS.includes(user?.rol)
+      ? [{ to: '/admin', icon: IconSettings, label: 'Admin' }]
+      : [{ to: '/perfil', icon: IconUser, label: 'Perfil' }]
+    ),
   ];
 
   return (

@@ -2,34 +2,30 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { authMiddleware, requireRol } from '../../middleware/auth.js';
 import { validateInput } from '../../middleware/validateInput.js';
+import { PRIVILEGIADOS } from '../../utils/roles.js';
 import * as controller from './cursos.controller.js';
 
 const router = Router();
 router.use(authMiddleware);
 
-// Cursos
 router.get('/', controller.listarCursos);
-router.post('/', requireRol('admin'),
+router.post('/', requireRol(...PRIVILEGIADOS),
   [body('nombre').trim().notEmpty()], validateInput,
   controller.crearCurso);
-router.delete('/:id', requireRol('admin'), controller.eliminarCurso);
+router.delete('/:id', requireRol(...PRIVILEGIADOS), controller.eliminarCurso);
 
-// Materias
 router.get('/materias', controller.listarMaterias);
-router.post('/materias', requireRol('admin'),
+router.post('/materias', requireRol(...PRIVILEGIADOS),
   [body('nombre').trim().notEmpty()], validateInput,
   controller.crearMateria);
 
-// Asignaciones docente ↔ curso
-router.post('/asignar', requireRol('admin'),
+router.post('/asignar', requireRol(...PRIVILEGIADOS),
   [body('cursoId').notEmpty(), body('docenteId').notEmpty()], validateInput,
   controller.asignarDocente);
-router.delete('/asignar/:id', requireRol('admin'), controller.quitarDocente);
+router.delete('/asignar/:id', requireRol(...PRIVILEGIADOS), controller.quitarDocente);
 
-// Para papás: ver cursos/docentes de sus hijos
 router.get('/mis-cursos', requireRol('papa'), controller.cursosDelPapa);
-
-// Para docentes: ver sus cursos
-router.get('/mis-asignaciones', requireRol('docente', 'admin'), controller.cursosDelDocente);
+router.get('/mis-asignaciones', requireRol('docente', ...PRIVILEGIADOS), controller.cursosDelDocente);
+router.get('/ciclo/:anio', requireRol(...PRIVILEGIADOS), controller.resumenNuevoCiclo);
 
 export default router;

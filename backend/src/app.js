@@ -18,6 +18,7 @@ import notificacionesRoutes from './modules/notificaciones/notificaciones.routes
 import cursosRoutes from './modules/cursos/cursos.routes.js';
 import alumnosRoutes from './modules/alumnos/alumnos.routes.js';
 import anunciosRoutes from './modules/anuncios/anuncios.routes.js';
+import auditRoutes from './modules/audit/audit.routes.js';
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/cursos', cursosRoutes);
 app.use('/api/alumnos', alumnosRoutes);
 app.use('/api/anuncios', anunciosRoutes);
+app.use('/api/audit', auditRoutes);
 
 // 404 y error handler
 app.use(notFound);

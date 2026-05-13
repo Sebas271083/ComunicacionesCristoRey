@@ -1,5 +1,9 @@
 import { prisma } from '../../config/database.js';
 import { isPrivilegiado } from '../../utils/roles.js';
+import { registrarAudit } from '../../utils/audit.js';
+import { cursoIdsDelDocente } from '../cursos/cursos.service.js';
+
+const PUEDE_EDITAR_AJENO = ['admin', 'director'];
 
 const includeBase = {
   creador: { select: { id: true, nombre: true } },
@@ -59,7 +63,11 @@ export async function listar({ desde, hasta } = {}, userId, rol) {
   });
 }
 
-export async function crear({ titulo, descripcion, fechaVencimiento, creadorId, cursoId, destinatario }) {
+export async function crear({ titulo, descripcion, fechaVencimiento, creadorId, cursoId, destinatario }, rol) {
+  if (rol === 'docente' && cursoId) {
+    const ids = await cursoIdsDelDocente(creadorId);
+    if (!ids.includes(cursoId)) throw new Error('No tenés asignación en ese curso');
+  }
   return prisma.tarea.create({
     data: {
       titulo,
@@ -73,14 +81,32 @@ export async function crear({ titulo, descripcion, fechaVencimiento, creadorId, 
   });
 }
 
-export async function actualizar(id, { titulo, descripcion, fechaVencimiento }, userId) {
+export async function actualizar(id, { titulo, descripcion, fechaVencimiento, cursoId, destinatario }, userId, rol) {
   const tarea = await prisma.tarea.findUnique({ where: { id } });
   if (!tarea) throw new Error('Tarea no encontrada');
-  if (tarea.creadorId !== userId) throw new Error('Sin permiso');
-  return prisma.tarea.update({
-    where: { id },
-    data: { titulo, descripcion, ...(fechaVencimiento && { fechaVencimiento: new Date(fechaVencimiento) }) },
+  if (tarea.creadorId !== userId && !PUEDE_EDITAR_AJENO.includes(rol)) throw new Error('Sin permiso');
+  if (tarea.fechaVencimiento <= new Date()) throw new Error('No se puede editar una tarea vencida');
+
+  const data = {
+    ...(titulo          !== undefined && { titulo }),
+    ...(descripcion     !== undefined && { descripcion }),
+    ...(fechaVencimiento              && { fechaVencimiento: new Date(fechaVencimiento) }),
+    ...(cursoId         !== undefined && { cursoId: cursoId || null }),
+    ...(destinatario    !== undefined && { destinatario }),
+  };
+
+  const actualizada = await prisma.tarea.update({ where: { id }, data, include: includeBase });
+
+  registrarAudit({
+    usuarioId: userId,
+    recurso: 'tarea',
+    recursoId: id,
+    titulo: tarea.titulo,
+    antes: { titulo: tarea.titulo, descripcion: tarea.descripcion, destinatario: tarea.destinatario },
+    despues: { titulo: actualizada.titulo, descripcion: actualizada.descripcion, destinatario: actualizada.destinatario },
   });
+
+  return actualizada;
 }
 
 export async function eliminar(id, userId, rol) {

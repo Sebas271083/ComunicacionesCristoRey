@@ -1,11 +1,11 @@
-import { IconCalendar, IconTrash } from '@tabler/icons-react';
+import { IconCalendar, IconTrash, IconPencil } from '@tabler/icons-react';
 import { formatFechaVencimiento, isVencida } from '../../../utils/formatDate.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 
-export function TaskCard({ tarea, onToggle, onDelete }) {
+export function TaskCard({ tarea, onToggle, onDelete, onEdit }) {
   const { user } = useAuth();
   const vencida = isVencida(tarea.fechaVencimiento) && !tarea.completada;
-  const puedeEliminar = user.rol === 'docente' || user.rol === 'admin';
+  const puedeEliminar = ['docente', 'admin', 'director', 'secretaria'].includes(user.rol);
 
   return (
     <div className={`card bg-base-100 shadow-sm border-l-4 transition-all ${
@@ -38,14 +38,18 @@ export function TaskCard({ tarea, onToggle, onDelete }) {
               {tarea.creador?.nombre}
             </p>
           </div>
-          {puedeEliminar && (
-            <button
-              className="btn btn-ghost btn-xs text-error flex-shrink-0"
-              onClick={() => onDelete(tarea.id)}
-            >
-              <IconTrash size={16} />
-            </button>
-          )}
+          <div className="flex gap-1">
+            {onEdit && (
+              <button className="btn btn-ghost btn-xs text-primary flex-shrink-0" onClick={onEdit}>
+                <IconPencil size={15} />
+              </button>
+            )}
+            {puedeEliminar && (
+              <button className="btn btn-ghost btn-xs text-error flex-shrink-0" onClick={() => onDelete(tarea.id)}>
+                <IconTrash size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

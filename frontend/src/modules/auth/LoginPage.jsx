@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { IconSchool, IconEye, IconEyeOff, IconDownload, IconShare } from '@tabler/icons-react';
 
@@ -123,12 +123,6 @@ export function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-base-content/60 mt-2">
-            ¿No tenés cuenta?{' '}
-            <Link to="/register" className="link link-primary font-medium">
-              Registrarse
-            </Link>
-          </p>
 
           {!isStandalone && (
             <div className="mt-4 pt-4 border-t border-base-200">

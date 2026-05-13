@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database.js';
 import { isPrivilegiado } from '../../utils/roles.js';
 import { enviarNotificacion } from '../notificaciones/notificaciones.service.js';
+import { cicloActual } from '../../utils/ciclo.js';
 
 export async function getConversaciones(userId) {
   const mensajes = await prisma.mensaje.findMany({
@@ -166,7 +167,7 @@ export async function gruposMasivo(userId, rol) {
 
   if (rol === 'docente') {
     const asignaciones = await prisma.cursoDocente.findMany({
-      where: { docenteId: userId },
+      where: { docenteId: userId, cicloLectivo: cicloActual() },
       include: { curso: { select: { id: true, nombre: true, alumnos: { include: { padres: true } } } } },
     });
 
@@ -186,10 +187,10 @@ export async function gruposMasivo(userId, rol) {
   return [];
 }
 
-// Docente: papás por curso
+// Docente: papás por curso (solo ciclo activo)
 export async function papasDisponiblesParaDocente(docenteId) {
   const asignaciones = await prisma.cursoDocente.findMany({
-    where: { docenteId },
+    where: { docenteId, cicloLectivo: cicloActual() },
     select: { cursoId: true, curso: { select: { id: true, nombre: true } } },
   });
 

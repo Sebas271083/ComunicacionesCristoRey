@@ -7,18 +7,6 @@ import * as controller from './auth.controller.js';
 const router = Router();
 
 router.post(
-  '/register',
-  [
-    body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
-    body('password').isLength({ min: 6 }).withMessage('Contraseña mínimo 6 caracteres'),
-    body('nombre').trim().notEmpty().withMessage('Nombre requerido'),
-    body('rol').isIn(['papa', 'docente', 'admin']).withMessage('Rol inválido'),
-  ],
-  validateInput,
-  controller.registrar
-);
-
-router.post(
   '/login',
   [
     body('email').isEmail().normalizeEmail(),

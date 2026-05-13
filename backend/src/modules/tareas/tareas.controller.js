@@ -9,17 +9,20 @@ export async function listar(req, res, next) {
 
 export async function crear(req, res, next) {
   try {
-    const tarea = await tareasService.crear({ ...req.body, creadorId: req.user.userId });
+    const tarea = await tareasService.crear({ ...req.body, creadorId: req.user.userId }, req.user.rol);
     res.status(201).json({ ok: true, data: tarea });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.message === 'No tenés asignación en ese curso') return res.status(403).json({ ok: false, error: err.message });
+    next(err);
+  }
 }
 
 export async function actualizar(req, res, next) {
   try {
-    const tarea = await tareasService.actualizar(req.params.id, req.body, req.user.userId);
+    const tarea = await tareasService.actualizar(req.params.id, req.body, req.user.userId, req.user.rol);
     res.json({ ok: true, data: tarea });
   } catch (err) {
-    if (['Tarea no encontrada', 'Sin permiso'].includes(err.message))
+    if (['Tarea no encontrada', 'Sin permiso', 'No se puede editar una tarea vencida'].includes(err.message))
       return res.status(403).json({ ok: false, error: err.message });
     next(err);
   }

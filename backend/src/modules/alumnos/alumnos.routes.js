@@ -2,26 +2,25 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { authMiddleware, requireRol } from '../../middleware/auth.js';
 import { validateInput } from '../../middleware/validateInput.js';
+import { PRIVILEGIADOS } from '../../utils/roles.js';
 import * as controller from './alumnos.controller.js';
 
 const router = Router();
 router.use(authMiddleware);
 
 router.get('/', requireRol('admin', 'docente', 'director', 'secretaria'), controller.listar);
-router.post('/', requireRol('admin'),
+router.post('/', requireRol(...PRIVILEGIADOS),
   [body('nombre').trim().notEmpty(), body('cursoId').notEmpty()], validateInput,
   controller.crear);
-router.put('/:id', requireRol('admin'), controller.actualizar);
-router.delete('/:id', requireRol('admin'), controller.eliminar);
+router.put('/:id', requireRol(...PRIVILEGIADOS), controller.actualizar);
+router.delete('/:id', requireRol(...PRIVILEGIADOS), controller.eliminar);
 
-// Vincular/desvincular papá ↔ alumno
 router.post('/vincular',
-  requireRol('admin'),
+  requireRol(...PRIVILEGIADOS),
   [body('alumnoId').notEmpty(), body('papaId').notEmpty()], validateInput,
   controller.vincularPapa);
-router.delete('/:alumnoId/papa/:papaId', requireRol('admin'), controller.desvincularPapa);
+router.delete('/:alumnoId/papa/:papaId', requireRol(...PRIVILEGIADOS), controller.desvincularPapa);
 
-// Papás de un curso (docentes lo usan para elegir a quién escribir)
-router.get('/curso/:cursoId/papas', requireRol('docente', 'admin', 'director', 'secretaria'), controller.papasDeCurso);
+router.get('/curso/:cursoId/papas', requireRol('docente', ...PRIVILEGIADOS), controller.papasDeCurso);
 
 export default router;

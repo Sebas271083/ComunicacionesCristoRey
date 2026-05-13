@@ -19,7 +19,13 @@ export function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [fechaActual, setFechaActual] = useState(new Date());
+
+  const puedeEditar = (evento) => {
+    const esFuturo = new Date(evento.fecha) > new Date();
+    return esFuturo && (evento.creador?.id === user.id || ['admin', 'director'].includes(user.rol));
+  };
 
   const puedeCrear    = PUEDE_PUBLICAR.includes(user.rol);
   const puedeSegmentar = PUEDE_SEGMENTAR.includes(user.rol);
@@ -40,8 +46,8 @@ export function CalendarPage() {
   useEffect(() => { cargar(); }, [cargar]);
 
   useEffect(() => {
-    if (puedeSegmentar) cursosService.listar().then(setCursos).catch(() => {});
-  }, [puedeSegmentar]);
+    if (puedeSegmentar) cursosService.listarParaForm(user.rol).then(setCursos).catch(() => {});
+  }, [puedeSegmentar, user.rol]);
 
   const crear = async (formData) => {
     setSaving(true);
@@ -52,6 +58,15 @@ export function CalendarPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const editar = async (formData) => {
+    setSaving(true);
+    try {
+      const actualizado = await calendarService.actualizar(editando.id, formData);
+      setEventos((prev) => prev.map((e) => e.id === editando.id ? actualizado : e));
+      setEditando(null);
+    } finally { setSaving(false); }
   };
 
   const eliminar = async (id) => {
@@ -93,7 +108,17 @@ export function CalendarPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {eventos.map((evento) => (
-              <EventCard key={evento.id} evento={evento} onDelete={eliminar} />
+              <EventCard
+                key={evento.id}
+                evento={evento}
+                onDelete={eliminar}
+                onEdit={puedeEditar(evento) ? () => setEditando({
+                  ...evento,
+                  fecha: format(new Date(evento.fecha), "yyyy-MM-dd'T'HH:mm"),
+                  cursoId: evento.cursoId ?? '',
+                  alumnoId: evento.alumnoId ?? '',
+                }) : null}
+              />
             ))}
           </div>
         )}
@@ -112,6 +137,23 @@ export function CalendarPage() {
             />
           </div>
           <div className="modal-backdrop" onClick={() => setShowForm(false)} />
+        </dialog>
+      )}
+
+      {editando && (
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Editar evento</h3>
+            <EventForm
+              onSubmit={editar}
+              onCancel={() => setEditando(null)}
+              loading={saving}
+              cursos={cursos}
+              puedeSegmentar={puedeSegmentar}
+              initialValues={editando}
+            />
+          </div>
+          <div className="modal-backdrop" onClick={() => setEditando(null)} />
         </dialog>
       )}
     </Layout>
