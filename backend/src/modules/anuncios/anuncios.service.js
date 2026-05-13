@@ -37,8 +37,11 @@ export async function listarParaDocente(docenteId) {
 
   return prisma.anuncio.findMany({
     where: {
-      destinatario: { not: 'padres' },
-      OR: [{ cursoId: null }, { cursoId: { in: cursoIds } }],
+      OR: [
+        { creadorId: docenteId },
+        { destinatario: { not: 'padres' }, cursoId: null },
+        { destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
+      ],
     },
     orderBy: { createdAt: 'desc' },
     include: includeBase,

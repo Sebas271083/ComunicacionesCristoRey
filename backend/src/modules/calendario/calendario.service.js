@@ -44,11 +44,8 @@ export async function listar({ mes, anio } = {}, userId, rol) {
       where: {
         ...rango,
         OR: [
-          // Eventos que el docente creó (siempre los ve)
           { creadorId: userId },
-          // Generales sin alumno, no exclusivos de padres
           { alumnoId: null, destinatario: { not: 'padres' }, cursoId: null },
-          // De sus cursos, no exclusivos de padres, no por alumno
           { alumnoId: null, destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
         ],
       },

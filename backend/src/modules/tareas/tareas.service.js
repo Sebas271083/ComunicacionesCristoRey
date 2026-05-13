@@ -38,8 +38,13 @@ export async function listar({ desde, hasta } = {}, userId, rol) {
     return prisma.tarea.findMany({
       where: {
         ...rango,
-        destinatario: { not: 'padres' },
-        OR: [{ cursoId: null }, { cursoId: { in: cursoIds } }],
+        OR: [
+          // Siempre ve las tareas que él mismo creó
+          { creadorId: userId },
+          // Y las de sus cursos que no sean exclusivas de padres
+          { destinatario: { not: 'padres' }, cursoId: null },
+          { destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
+        ],
       },
       orderBy: { fechaVencimiento: 'asc' },
       include: includeBase,
