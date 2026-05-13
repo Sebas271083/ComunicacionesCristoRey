@@ -1,4 +1,5 @@
 import * as mensajesService from './mensajes.service.js';
+import { getIo } from '../../config/socket.js';
 
 export async function getConversaciones(req, res, next) {
   try {
@@ -24,6 +25,8 @@ export async function enviar(req, res, next) {
       enviadorId: req.user.userId,
       receptorId: req.body.receptorId,
     });
+    // Notificar al receptor en tiempo real
+    getIo()?.to(req.body.receptorId).emit('nuevo_mensaje', mensaje);
     res.status(201).json({ ok: true, data: mensaje });
   } catch (err) {
     if (err.message === 'Receptor no encontrado') return res.status(404).json({ ok: false, error: err.message });

@@ -4,6 +4,7 @@ import { ConversationList } from './components/ConversationList.jsx';
 import { MessageList } from './components/MessageList.jsx';
 import { MessageInput } from './components/MessageInput.jsx';
 import { messageService } from '../../services/messageService.js';
+import { getSocket } from '../../services/socketService.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useChatStore } from '../../store/chatStore.js';
 import { IconArrowLeft, IconPlus, IconMessages, IconSend, IconUsersGroup } from '@tabler/icons-react';
@@ -134,7 +135,10 @@ export function ChatPage() {
 
   useEffect(() => {
     cargarConversaciones();
-    const interval = setInterval(cargarConversaciones, 5000);
+    // Polling reducido solo como fallback para unread counts
+    const interval = setInterval(() => {
+      if (!document.hidden) cargarConversaciones();
+    }, 10000);
     return () => clearInterval(interval);
   }, [cargarConversaciones]);
 
@@ -151,14 +155,23 @@ export function ChatPage() {
     }
   }, [cargarConversaciones]);
 
+  // Tiempo real: escuchar mensajes nuevos vía socket
   useEffect(() => {
-    if (!receptor) return;
-    const interval = setInterval(async () => {
-      const data = await messageService.getHistorial(receptor.id);
-      setMensajes(data);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [receptor]);
+    const socket = getSocket();
+
+    const onNuevoMensaje = (mensaje) => {
+      // Si el mensaje es de la conversación abierta, agregarlo
+      if (receptor && mensaje.enviadorId === receptor.id) {
+        setMensajes((prev) => [...prev, mensaje]);
+        messageService.marcarLeidosConversacion(receptor.id).catch(() => {});
+      }
+      // Actualizar lista de conversaciones (unread badge)
+      cargarConversaciones();
+    };
+
+    socket.on('nuevo_mensaje', onNuevoMensaje);
+    return () => socket.off('nuevo_mensaje', onNuevoMensaje);
+  }, [receptor, cargarConversaciones]);
 
   const enviarMensaje = async (contenido) => {
     const msg = await messageService.enviar({ contenido, receptorId: receptor.id });

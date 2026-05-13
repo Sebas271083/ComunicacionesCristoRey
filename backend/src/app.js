@@ -1,9 +1,11 @@
 import './config/env.js';
+import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import { initSocket } from './config/socket.js';
 
 import { env } from './config/env.js';
 import { prisma } from './config/database.js';
@@ -26,14 +28,29 @@ const app = express();
 app.use(helmet());
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 
-// Rate limiting global
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false }));
+// Rate limiting específico para mensajes (polling de chat)
+const mensajesLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1800,                   // ~120 req/min por IP — cómodo para polling cada 5s
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting global para el resto de rutas
+const globalLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/api/mensajes'),
+});
 
 // Logging
 if (env.NODE_ENV !== 'test') app.use(morgan('dev'));
 
 // Body parsing
 app.use(express.json({ limit: '10kb' }));
+app.use(globalLimit);
 
 // Health check
 app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
@@ -41,7 +58,7 @@ app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
 // Rutas por módulo
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/mensajes', mensajesRoutes);
+app.use('/api/mensajes', mensajesLimit, mensajesRoutes);
 app.use('/api/tareas', tareasRoutes);
 app.use('/api/eventos', calendarioRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
@@ -55,7 +72,10 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Arranque
-app.listen(env.PORT, () => {
+const httpServer = createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(env.PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${env.PORT}`);
   console.log(`📦 Ambiente: ${env.NODE_ENV}`);
 });
