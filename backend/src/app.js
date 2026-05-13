@@ -23,6 +23,7 @@ import anunciosRoutes from './modules/anuncios/anuncios.routes.js';
 import auditRoutes from './modules/audit/audit.routes.js';
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Seguridad
 app.use(helmet());
