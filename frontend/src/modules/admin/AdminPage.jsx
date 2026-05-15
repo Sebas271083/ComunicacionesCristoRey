@@ -9,7 +9,7 @@ import { formatRelativo } from '../../utils/formatDate.js';
 import {
   IconPlus, IconTrash, IconUser, IconSchool, IconBook,
   IconUserPlus, IconLink, IconLinkOff, IconX, IconChevronDown, IconHistory,
-  IconPencil, IconCalendarEvent,
+  IconPencil, IconCalendarEvent, IconSearch,
 } from '@tabler/icons-react';
 
 const CICLO_ACTUAL = new Date().getFullYear();
@@ -51,6 +51,7 @@ function TabUsuarios() {
   const [form, setForm] = useState({ nombre: '', email: '', password: '', rol: 'docente' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [busqueda, setBusqueda] = useState('');
 
   const cargar = useCallback(async () => {
     try { setUsuarios(await usuariosService.listar()); }
@@ -78,20 +79,40 @@ function TabUsuarios() {
     cargar();
   };
 
+  const etiquetaRol = { admin: 'Administradores', director: 'Directivos', secretaria: 'Secretaría', docente: 'Docentes', papa: 'Padres/Madres' };
+
+  const usuariosFiltrados = !busqueda.trim() ? usuarios : usuarios.filter((u) => {
+    const q = busqueda.toLowerCase();
+    return u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+  });
+
   const grupos = ROLES_CREABLES.reduce((acc, rol) => {
-    acc[rol] = usuarios.filter((u) => u.rol === rol);
+    acc[rol] = usuariosFiltrados.filter((u) => u.rol === rol);
     return acc;
   }, {});
 
-  const etiquetaRol = { admin: 'Administradores', director: 'Directivos', secretaria: 'Secretaría', docente: 'Docentes', papa: 'Padres/Madres' };
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-base-content/50">{usuarios.length} usuarios activos</p>
         <button className="btn btn-primary btn-sm gap-1" onClick={() => setModal(true)}>
           <IconUserPlus size={15} /> Agregar
         </button>
+      </div>
+
+      <div className="relative mb-4">
+        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+        <input
+          className="input input-bordered input-sm w-full pl-9 pr-8"
+          placeholder="Buscar por nombre o email..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+        {busqueda && (
+          <button className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle" onClick={() => setBusqueda('')}>
+            <IconX size={12} />
+          </button>
+        )}
       </div>
 
       {loading
@@ -172,6 +193,7 @@ function TabAlumnos() {
   const [editForm, setEditForm] = useState({ cursoId: '' });
   const [vincForm, setVincForm] = useState({ papaId: '' });
   const [saving, setSaving] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
 
   const cargar = useCallback(async () => {
     try {
@@ -234,19 +256,39 @@ function TabAlumnos() {
 
   const nombreCurso = (id) => cursos.find((c) => c.id === id)?.nombre ?? '—';
 
+  const alumnosFiltrados = !busqueda.trim() ? alumnos : alumnos.filter((a) => {
+    const q = busqueda.toLowerCase();
+    return a.nombre.toLowerCase().includes(q) || (a.curso?.nombre ?? '').toLowerCase().includes(q);
+  });
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-base-content/50">{alumnos.length} alumnos</p>
         <button className="btn btn-primary btn-sm gap-1" onClick={() => setModal('nuevo')}>
           <IconPlus size={15} /> Agregar
         </button>
       </div>
 
+      <div className="relative mb-4">
+        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+        <input
+          className="input input-bordered input-sm w-full pl-9 pr-8"
+          placeholder="Buscar por nombre o curso..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+        {busqueda && (
+          <button className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle" onClick={() => setBusqueda('')}>
+            <IconX size={12} />
+          </button>
+        )}
+      </div>
+
       {loading
         ? <div className="flex justify-center py-8"><span className="loading loading-spinner text-primary" /></div>
         : <div className="flex flex-col gap-2">
-          {alumnos.map((a) => (
+          {alumnosFiltrados.map((a) => (
             <div key={a.id} className="bg-base-100 rounded-xl px-3 py-2.5 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center flex-shrink-0">
@@ -366,6 +408,7 @@ function TabCursos() {
   const [asigForm, setAsigForm] = useState({ docenteId: '', tipo: 'especial' });
   const [saving, setSaving] = useState(false);
   const [expandido, setExpandido] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
 
   const cargar = useCallback(async () => {
     try {
@@ -411,9 +454,16 @@ function TabCursos() {
     cargar();
   };
 
+  const cursosFiltrados = !busqueda.trim() ? cursos : cursos.filter((c) => {
+    const q = busqueda.toLowerCase();
+    const matchNombre = c.nombre.toLowerCase().includes(q);
+    const matchDocente = c.docentes?.some((d) => d.docente?.nombre?.toLowerCase().includes(q));
+    return matchNombre || matchDocente;
+  });
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-sm text-base-content/50">{cursos.length} cursos</p>
           <p className="text-xs text-base-content/40 flex items-center gap-1 mt-0.5">
@@ -425,10 +475,25 @@ function TabCursos() {
         </button>
       </div>
 
+      <div className="relative mb-4">
+        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+        <input
+          className="input input-bordered input-sm w-full pl-9 pr-8"
+          placeholder="Buscar por curso o docente..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+        {busqueda && (
+          <button className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle" onClick={() => setBusqueda('')}>
+            <IconX size={12} />
+          </button>
+        )}
+      </div>
+
       {loading
         ? <div className="flex justify-center py-8"><span className="loading loading-spinner text-primary" /></div>
         : <div className="flex flex-col gap-2">
-          {cursos.map((c) => (
+          {cursosFiltrados.map((c) => (
             <div key={c.id} className="bg-base-100 rounded-xl shadow-sm overflow-hidden">
               <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
                 onClick={() => setExpandido(expandido === c.id ? null : c.id)}>

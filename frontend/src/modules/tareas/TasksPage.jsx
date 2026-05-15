@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { Layout } from '../../components/Layout/Layout.jsx';
 import { TaskCard } from './components/TaskCard.jsx';
 import { TaskForm } from './components/TaskForm.jsx';
 import { taskService } from '../../services/taskService.js';
 import { cursosService } from '../../services/cursosService.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { IconPlus, IconClipboardList } from '@tabler/icons-react';
+import { IconPlus, IconClipboardList, IconClock, IconCircleCheck, IconCalendar } from '@tabler/icons-react';
 
 export function TasksPage() {
   const { user } = useAuth();
@@ -80,6 +80,21 @@ export function TasksPage() {
     return true;
   });
 
+  // Stats
+  const ahora = new Date();
+  const en7dias = addDays(ahora, 7);
+  const statTotal      = tareas.length;
+  const statPendientes = tareas.filter((t) => !t.completada && new Date(t.fechaVencimiento) >= ahora).length;
+  const statCompletadas = tareas.filter((t) => t.completada).length;
+  const statProximas   = tareas.filter((t) => !t.completada && new Date(t.fechaVencimiento) >= ahora && new Date(t.fechaVencimiento) <= en7dias).length;
+
+  const STATS = [
+    { label: 'Total',      value: statTotal,       icon: IconClipboardList, color: 'text-base-content' },
+    { label: 'Pendientes', value: statPendientes,   icon: IconClock,         color: 'text-warning' },
+    { label: 'Completadas',value: statCompletadas,  icon: IconCircleCheck,   color: 'text-success' },
+    { label: 'Próximas',   value: statProximas,     icon: IconCalendar,      color: 'text-info' },
+  ];
+
   return (
     <Layout title="Tareas">
       <div className="page-container p-4">
@@ -103,6 +118,19 @@ export function TasksPage() {
             </button>
           ))}
         </div>
+
+        {/* Stats bar */}
+        {!loading && (
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {STATS.map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="bg-base-100 rounded-xl p-2.5 shadow-sm flex flex-col items-center gap-1">
+                <Icon size={18} className={color} />
+                <span className={`text-lg font-bold leading-none ${color}`}>{value}</span>
+                <span className="text-[10px] text-base-content/50 text-center leading-tight">{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-12">
