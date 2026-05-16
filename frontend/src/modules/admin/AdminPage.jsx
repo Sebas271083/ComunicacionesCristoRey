@@ -208,6 +208,9 @@ function TabAlumnos() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroNivel, setFiltroNivel] = useState('todos');
   const [filtroCurso, setFiltroCurso] = useState('');
+  const [fichaEditando, setFichaEditando] = useState(false);
+  const [fichaForm, setFichaForm] = useState({});
+  const [fichaGuardando, setFichaGuardando] = useState(false);
   const puedeVerFicha = ['admin', 'director', 'secretaria'].includes(user.rol);
 
   const cargar = useCallback(async () => {
@@ -267,6 +270,30 @@ function TabAlumnos() {
     if (!confirm('¿Eliminar este alumno?')) return;
     await alumnosService.eliminar(id);
     cargar();
+  };
+
+  const abrirEditarFicha = (a) => {
+    setFichaForm({
+      sexo: a.sexo ?? '',
+      fechaNacimiento: a.fechaNacimiento ? format(new Date(a.fechaNacimiento), 'yyyy-MM-dd') : '',
+      nacionalidad: a.nacionalidad ?? '',
+      dni: a.dni ?? '',
+      domicilio: a.domicilio ?? '',
+      nombreResponsable: a.nombreResponsable ?? '',
+      dniResponsable: a.dniResponsable ?? '',
+      telefonoResponsable: a.telefonoResponsable ?? '',
+    });
+    setFichaEditando(true);
+  };
+
+  const handleGuardarFicha = async () => {
+    setFichaGuardando(true);
+    try {
+      const actualizado = await alumnosService.actualizar(modal.alumno.id, fichaForm);
+      setAlumnos((prev) => prev.map((a) => a.id === actualizado.id ? { ...a, ...actualizado } : a));
+      setModal((m) => ({ ...m, alumno: { ...m.alumno, ...actualizado } }));
+      setFichaEditando(false);
+    } finally { setFichaGuardando(false); }
   };
 
   const nombreCurso = (id) => cursos.find((c) => c.id === id)?.nombre ?? '—';
@@ -461,33 +488,94 @@ function TabAlumnos() {
         const fnLabel = a.fechaNacimiento
           ? format(new Date(a.fechaNacimiento), "d 'de' MMMM 'de' yyyy", { locale: es })
           : null;
+        const ff = (k) => (e) => setFichaForm((f) => ({ ...f, [k]: e.target.value }));
         return (
-          <Modal title="Ficha del alumno" onClose={() => setModal(null)}>
+          <Modal
+            title={fichaEditando ? 'Editar ficha' : 'Ficha del alumno'}
+            onClose={() => { setModal(null); setFichaEditando(false); }}
+          >
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-base-200">
               <div className="w-12 h-12 rounded-full bg-secondary/20 text-secondary flex items-center justify-center flex-shrink-0">
                 <IconSchool size={22} />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-bold text-base">{a.nombre}</p>
                 <span className="badge badge-sm badge-ghost mt-0.5">{a.curso?.nombre ?? '—'}</span>
               </div>
+              {!fichaEditando && (
+                <button className="btn btn-ghost btn-sm gap-1" onClick={() => abrirEditarFicha(a)}>
+                  <IconPencil size={14} /> Editar
+                </button>
+              )}
             </div>
 
-            <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-1">Datos personales</p>
-            <div className="mb-4">
-              <Campo label="Sexo" value={sexoLabel} />
-              <Campo label="Fecha de nacimiento" value={fnLabel} />
-              <Campo label="Nacionalidad" value={a.nacionalidad} />
-              <Campo label="DNI" value={a.dni} />
-              <Campo label="Domicilio" value={a.domicilio} />
-            </div>
+            {fichaEditando ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-base-content/40">Datos personales</p>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">Sexo</span></label>
+                  <select className="select select-bordered select-sm" value={fichaForm.sexo} onChange={ff('sexo')}>
+                    <option value="">No especificado</option>
+                    <option value="V">Varón</option>
+                    <option value="M">Mujer</option>
+                  </select>
+                </div>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">Fecha de nacimiento</span></label>
+                  <input type="date" className="input input-bordered input-sm" value={fichaForm.fechaNacimiento} onChange={ff('fechaNacimiento')} />
+                </div>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">Nacionalidad</span></label>
+                  <input className="input input-bordered input-sm" value={fichaForm.nacionalidad} onChange={ff('nacionalidad')} />
+                </div>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">DNI</span></label>
+                  <input className="input input-bordered input-sm" value={fichaForm.dni} onChange={ff('dni')} />
+                </div>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">Domicilio</span></label>
+                  <input className="input input-bordered input-sm" value={fichaForm.domicilio} onChange={ff('domicilio')} />
+                </div>
 
-            <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-1">Responsable</p>
-            <div>
-              <Campo label="Nombre" value={a.nombreResponsable} />
-              <Campo label="DNI" value={a.dniResponsable} />
-              <Campo label="Teléfono" value={a.telefonoResponsable} />
-            </div>
+                <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mt-1">Responsable</p>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">Nombre</span></label>
+                  <input className="input input-bordered input-sm" value={fichaForm.nombreResponsable} onChange={ff('nombreResponsable')} />
+                </div>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">DNI</span></label>
+                  <input className="input input-bordered input-sm" value={fichaForm.dniResponsable} onChange={ff('dniResponsable')} />
+                </div>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">Teléfono</span></label>
+                  <input className="input input-bordered input-sm" value={fichaForm.telefonoResponsable} onChange={ff('telefonoResponsable')} />
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                  <button className="btn btn-ghost btn-sm flex-1" onClick={() => setFichaEditando(false)}>Cancelar</button>
+                  <button className="btn btn-primary btn-sm flex-1" onClick={handleGuardarFicha} disabled={fichaGuardando}>
+                    {fichaGuardando ? <span className="loading loading-spinner loading-xs" /> : 'Guardar'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-1">Datos personales</p>
+                <div className="mb-4">
+                  <Campo label="Sexo" value={sexoLabel} />
+                  <Campo label="Fecha de nacimiento" value={fnLabel} />
+                  <Campo label="Nacionalidad" value={a.nacionalidad} />
+                  <Campo label="DNI" value={a.dni} />
+                  <Campo label="Domicilio" value={a.domicilio} />
+                </div>
+                <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-1">Responsable</p>
+                <div>
+                  <Campo label="Nombre" value={a.nombreResponsable} />
+                  <Campo label="DNI" value={a.dniResponsable} />
+                  <Campo label="Teléfono" value={a.telefonoResponsable} />
+                </div>
+              </>
+            )}
           </Modal>
         );
       })()}
