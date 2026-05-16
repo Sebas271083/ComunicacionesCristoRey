@@ -274,6 +274,7 @@ function TabAlumnos() {
 
   const abrirEditarFicha = (a) => {
     setFichaForm({
+      nombre: a.nombre ?? '',
       sexo: a.sexo ?? '',
       fechaNacimiento: a.fechaNacimiento ? format(new Date(a.fechaNacimiento), 'yyyy-MM-dd') : '',
       nacionalidad: a.nacionalidad ?? '',
@@ -512,6 +513,10 @@ function TabAlumnos() {
             {fichaEditando ? (
               <div className="flex flex-col gap-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-base-content/40">Datos personales</p>
+                <div className="form-control">
+                  <label className="label py-0.5"><span className="label-text text-xs">Nombre completo</span></label>
+                  <input className="input input-bordered input-sm" value={fichaForm.nombre} onChange={ff('nombre')} required />
+                </div>
                 <div className="form-control">
                   <label className="label py-0.5"><span className="label-text text-xs">Sexo</span></label>
                   <select className="select select-bordered select-sm" value={fichaForm.sexo} onChange={ff('sexo')}>
