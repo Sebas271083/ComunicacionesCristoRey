@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Layout } from '../../components/Layout/Layout.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { usuariosService } from '../../services/usuariosService.js';
@@ -9,7 +11,7 @@ import { formatRelativo } from '../../utils/formatDate.js';
 import {
   IconPlus, IconTrash, IconUser, IconSchool, IconBook,
   IconUserPlus, IconLink, IconLinkOff, IconX, IconChevronDown, IconHistory,
-  IconPencil, IconCalendarEvent, IconSearch,
+  IconPencil, IconCalendarEvent, IconSearch, IconId,
 } from '@tabler/icons-react';
 
 const CICLO_ACTUAL = new Date().getFullYear();
@@ -181,19 +183,30 @@ function TabUsuarios() {
   );
 }
 
+function Campo({ label, value }) {
+  return (
+    <div className="flex justify-between items-start py-1.5 border-b border-base-200 last:border-0 gap-2">
+      <span className="text-xs text-base-content/50 flex-shrink-0">{label}</span>
+      <span className={`text-sm text-right ${value ? 'font-medium' : 'text-base-content/30'}`}>{value ?? '—'}</span>
+    </div>
+  );
+}
+
 // ── Tab: Alumnos ──────────────────────────────────────────────────────────────
 
 function TabAlumnos() {
+  const { user } = useAuth();
   const [alumnos, setAlumnos] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [papas, setPapas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // null | 'nuevo' | {type:'vincular'|'editar', alumno}
+  const [modal, setModal] = useState(null); // null | 'nuevo' | {type:'vincular'|'editar'|'ficha', alumno}
   const [form, setForm] = useState({ nombre: '', cursoId: '' });
   const [editForm, setEditForm] = useState({ cursoId: '' });
   const [vincForm, setVincForm] = useState({ papaId: '' });
   const [saving, setSaving] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const puedeVerFicha = ['admin', 'director', 'secretaria'].includes(user.rol);
 
   const cargar = useCallback(async () => {
     try {
@@ -302,6 +315,12 @@ function TabAlumnos() {
                   onClick={() => { setEditForm({ cursoId: a.cursoId ?? '' }); setModal({ type: 'editar', alumno: a }); }}>
                   <IconPencil size={13} />
                 </button>
+                {puedeVerFicha && (
+                  <button className="btn btn-ghost btn-xs gap-1 text-secondary"
+                    onClick={() => setModal({ type: 'ficha', alumno: a })}>
+                    <IconId size={13} />
+                  </button>
+                )}
                 <button className="btn btn-ghost btn-xs gap-1 text-primary"
                   onClick={() => { setVincForm({ papaId: '' }); setModal({ type: 'vincular', alumno: a }); }}>
                   <IconLink size={13} /> Padre
@@ -393,6 +412,43 @@ function TabAlumnos() {
           </form>
         </Modal>
       )}
+
+      {modal?.type === 'ficha' && (() => {
+        const a = modal.alumno;
+        const sexoLabel = a.sexo === 'V' ? 'Varón' : a.sexo === 'M' ? 'Mujer' : null;
+        const fnLabel = a.fechaNacimiento
+          ? format(new Date(a.fechaNacimiento), "d 'de' MMMM 'de' yyyy", { locale: es })
+          : null;
+        return (
+          <Modal title="Ficha del alumno" onClose={() => setModal(null)}>
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-base-200">
+              <div className="w-12 h-12 rounded-full bg-secondary/20 text-secondary flex items-center justify-center flex-shrink-0">
+                <IconSchool size={22} />
+              </div>
+              <div>
+                <p className="font-bold text-base">{a.nombre}</p>
+                <span className="badge badge-sm badge-ghost mt-0.5">{a.curso?.nombre ?? '—'}</span>
+              </div>
+            </div>
+
+            <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-1">Datos personales</p>
+            <div className="mb-4">
+              <Campo label="Sexo" value={sexoLabel} />
+              <Campo label="Fecha de nacimiento" value={fnLabel} />
+              <Campo label="Nacionalidad" value={a.nacionalidad} />
+              <Campo label="DNI" value={a.dni} />
+              <Campo label="Domicilio" value={a.domicilio} />
+            </div>
+
+            <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-1">Responsable</p>
+            <div>
+              <Campo label="Nombre" value={a.nombreResponsable} />
+              <Campo label="DNI" value={a.dniResponsable} />
+              <Campo label="Teléfono" value={a.telefonoResponsable} />
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

@@ -11,17 +11,36 @@ export async function listar(cursoId) {
   });
 }
 
-export async function crear({ nombre, cursoId }) {
+function pickFicha({ sexo, fechaNacimiento, nacionalidad, dni, domicilio, nombreResponsable, dniResponsable, telefonoResponsable } = {}) {
+  const data = {};
+  if (sexo !== undefined) data.sexo = sexo || null;
+  if (fechaNacimiento !== undefined) data.fechaNacimiento = fechaNacimiento ? new Date(fechaNacimiento) : null;
+  if (nacionalidad !== undefined) data.nacionalidad = nacionalidad || null;
+  if (dni !== undefined) data.dni = dni || null;
+  if (domicilio !== undefined) data.domicilio = domicilio || null;
+  if (nombreResponsable !== undefined) data.nombreResponsable = nombreResponsable || null;
+  if (dniResponsable !== undefined) data.dniResponsable = dniResponsable || null;
+  if (telefonoResponsable !== undefined) data.telefonoResponsable = telefonoResponsable || null;
+  return data;
+}
+
+export async function crear(body) {
+  const { nombre, cursoId } = body;
   return prisma.alumno.create({
-    data: { nombre, cursoId },
+    data: { nombre, cursoId, ...pickFicha(body) },
     include: { curso: { select: { id: true, nombre: true } } },
   });
 }
 
-export async function actualizar(id, { nombre, cursoId }) {
+export async function actualizar(id, body) {
+  const { nombre, cursoId } = body;
   return prisma.alumno.update({
     where: { id },
-    data: { nombre, ...(cursoId && { cursoId }) },
+    data: {
+      ...(nombre && { nombre }),
+      ...(cursoId && { cursoId }),
+      ...pickFicha(body),
+    },
     include: { curso: { select: { id: true, nombre: true } } },
   });
 }
