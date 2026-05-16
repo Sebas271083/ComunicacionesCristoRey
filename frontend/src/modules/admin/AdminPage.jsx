@@ -206,6 +206,8 @@ function TabAlumnos() {
   const [vincForm, setVincForm] = useState({ papaId: '' });
   const [saving, setSaving] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const [filtroNivel, setFiltroNivel] = useState('todos');
+  const [filtroCurso, setFiltroCurso] = useState('');
   const puedeVerFicha = ['admin', 'director', 'secretaria'].includes(user.rol);
 
   const cargar = useCallback(async () => {
@@ -269,10 +271,21 @@ function TabAlumnos() {
 
   const nombreCurso = (id) => cursos.find((c) => c.id === id)?.nombre ?? '—';
 
-  const alumnosFiltrados = !busqueda.trim() ? alumnos : alumnos.filter((a) => {
-    const q = busqueda.toLowerCase();
-    return a.nombre.toLowerCase().includes(q) || (a.curso?.nombre ?? '').toLowerCase().includes(q);
-  });
+  const cursosDelNivel = filtroNivel === 'todos'
+    ? cursos
+    : cursos.filter((c) => c.nivel === filtroNivel);
+
+  const alumnosFiltrados = alumnos
+    .filter((a) => {
+      if (filtroNivel !== 'todos' && a.curso?.nivel !== filtroNivel) return false;
+      if (filtroCurso && a.cursoId !== filtroCurso) return false;
+      if (busqueda.trim()) {
+        const q = busqueda.toLowerCase();
+        return a.nombre.toLowerCase().includes(q) || (a.curso?.nombre ?? '').toLowerCase().includes(q);
+      }
+      return true;
+    })
+    .sort((a, b) => a.nombre.localeCompare(b, 'es'));
 
   return (
     <div>
@@ -283,11 +296,11 @@ function TabAlumnos() {
         </button>
       </div>
 
-      <div className="relative mb-4">
+      <div className="relative mb-2">
         <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
         <input
           className="input input-bordered input-sm w-full pl-9 pr-8"
-          placeholder="Buscar por nombre o curso..."
+          placeholder="Buscar por nombre..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />
@@ -297,6 +310,35 @@ function TabAlumnos() {
           </button>
         )}
       </div>
+
+      <div className="flex gap-2 mb-3">
+        <div className="flex gap-1">
+          {[['todos', 'Todos'], ['primaria', 'Primaria'], ['inicial', 'Inicial']].map(([val, label]) => (
+            <button
+              key={val}
+              className={`btn btn-xs rounded-full ${filtroNivel === val ? 'btn-primary' : 'btn-ghost border border-base-300'}`}
+              onClick={() => { setFiltroNivel(val); setFiltroCurso(''); }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <select
+          className="select select-bordered select-xs flex-1 min-w-0"
+          value={filtroCurso}
+          onChange={(e) => setFiltroCurso(e.target.value)}
+        >
+          <option value="">Todos los cursos</option>
+          {cursosDelNivel.map((c) => (
+            <option key={c.id} value={c.id}>{c.nombre}</option>
+          ))}
+        </select>
+      </div>
+
+      <p className="text-xs text-base-content/40 mb-3">
+        {alumnosFiltrados.length} {alumnosFiltrados.length === 1 ? 'alumno' : 'alumnos'}
+        {(filtroNivel !== 'todos' || filtroCurso || busqueda) ? ' encontrados' : ' en total'}
+      </p>
 
       {loading
         ? <div className="flex justify-center py-8"><span className="loading loading-spinner text-primary" /></div>

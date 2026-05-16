@@ -5,7 +5,7 @@ export async function listar(cursoId) {
     where: { activo: true, ...(cursoId && { cursoId }) },
     orderBy: { nombre: 'asc' },
     include: {
-      curso: { select: { id: true, nombre: true } },
+      curso: { select: { id: true, nombre: true, nivel: true } },
       padres: { include: { papa: { select: { id: true, nombre: true, email: true } } } },
     },
   });
@@ -28,7 +28,7 @@ export async function crear(body) {
   const { nombre, cursoId } = body;
   return prisma.alumno.create({
     data: { nombre, cursoId, ...pickFicha(body) },
-    include: { curso: { select: { id: true, nombre: true } } },
+    include: { curso: { select: { id: true, nombre: true, nivel: true } } },
   });
 }
 
@@ -41,7 +41,7 @@ export async function actualizar(id, body) {
       ...(cursoId && { cursoId }),
       ...pickFicha(body),
     },
-    include: { curso: { select: { id: true, nombre: true } } },
+    include: { curso: { select: { id: true, nombre: true, nivel: true } } },
   });
 }
 
