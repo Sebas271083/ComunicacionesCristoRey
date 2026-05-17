@@ -204,6 +204,7 @@ function TabAlumnos() {
   const [form, setForm] = useState({ nombre: '', cursoId: '' });
   const [editForm, setEditForm] = useState({ cursoId: '' });
   const [vincForm, setVincForm] = useState({ papaId: '' });
+  const [vincBusqueda, setVincBusqueda] = useState('');
   const [saving, setSaving] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [filtroNivel, setFiltroNivel] = useState('todos');
@@ -392,7 +393,7 @@ function TabAlumnos() {
                   </button>
                 )}
                 <button className="btn btn-ghost btn-xs gap-1 text-primary"
-                  onClick={() => { setVincForm({ papaId: '' }); setModal({ type: 'vincular', alumno: a }); }}>
+                  onClick={() => { setVincForm({ papaId: '' }); setVincBusqueda(''); setModal({ type: 'vincular', alumno: a }); }}>
                   <IconLink size={13} /> Padre
                 </button>
                 <button className="btn btn-ghost btn-xs text-error" onClick={() => handleEliminar(a.id)}>
@@ -468,13 +469,50 @@ function TabAlumnos() {
             </p>
             <div className="form-control">
               <label className="label py-1"><span className="label-text font-medium">Padre / Madre</span></label>
-              <select className="select select-bordered" required value={vincForm.papaId}
-                onChange={(e) => setVincForm({ papaId: e.target.value })}>
-                <option value="">Seleccioná...</option>
-                {papas
-                  .filter((p) => !modal.alumno.padres?.some((pa) => pa.papaId === p.id))
-                  .map((p) => <option key={p.id} value={p.id}>{p.nombre} — {p.email}</option>)}
-              </select>
+              {vincForm.papaId ? (
+                <div className="flex items-center justify-between bg-base-200 rounded-lg px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{papas.find((p) => p.id === vincForm.papaId)?.nombre}</p>
+                    <p className="text-xs text-base-content/50">{papas.find((p) => p.id === vincForm.papaId)?.email}</p>
+                  </div>
+                  <button type="button" className="btn btn-ghost btn-xs btn-circle"
+                    onClick={() => { setVincForm({ papaId: '' }); setVincBusqueda(''); }}>
+                    <IconX size={13} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative mb-1">
+                    <IconSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+                    <input
+                      className="input input-bordered input-sm w-full pl-9"
+                      placeholder="Buscar por nombre o email..."
+                      value={vincBusqueda}
+                      onChange={(e) => setVincBusqueda(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="border border-base-300 rounded-lg overflow-y-auto max-h-48">
+                    {papas
+                      .filter((p) => !modal.alumno.padres?.some((pa) => pa.papaId === p.id))
+                      .filter((p) => {
+                        const q = vincBusqueda.toLowerCase();
+                        return !q || p.nombre.toLowerCase().includes(q) || p.email.toLowerCase().includes(q);
+                      })
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-base-200 border-b border-base-200 last:border-0"
+                          onClick={() => setVincForm({ papaId: p.id })}
+                        >
+                          <p className="text-sm font-medium">{p.nombre}</p>
+                          <p className="text-xs text-base-content/50">{p.email}</p>
+                        </button>
+                      ))}
+                  </div>
+                </>
+              )}
             </div>
             <button className="btn btn-primary mt-1" type="submit" disabled={saving || !vincForm.papaId}>
               {saving ? <span className="loading loading-spinner loading-sm" /> : 'Vincular'}
