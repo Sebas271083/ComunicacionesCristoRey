@@ -1,12 +1,9 @@
 // Incrementar CACHE_NAME en cada deploy para invalidar el cache anterior
-const CACHE_NAME = 'educhat-v2';
-const STATIC_ASSETS = ['/', '/chat', '/tareas', '/calendario', '/perfil'];
+const CACHE_NAME = 'educhat-v3';
 
-// Instalación: cachear assets estáticos y esperar confirmación del usuario
+// Instalación: sin pre-cacheo de rutas HTML
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME));
   // NO llamar self.skipWaiting() aquí:
   // el nuevo SW queda en estado "waiting" hasta que el usuario confirme la actualización.
 });
@@ -21,7 +18,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first para API, cache-first para assets estáticos
+// Fetch: network-first para API y navegación HTML, cache-first para assets estáticos
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -38,7 +35,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets: cache-first con fallback a network
+  // Navegación HTML (tipear URL, F5, links externos): siempre network-first.
+  // Así el índice siempre trae el JS actualizado y los guards funcionan.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/').then((r) => r || fetch('/')))
+    );
+    return;
+  }
+
+  // Assets estáticos con hash en el nombre (JS, CSS, imágenes): cache-first.
+  // Los hashes garantizan que si el contenido cambia, el nombre cambia.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
