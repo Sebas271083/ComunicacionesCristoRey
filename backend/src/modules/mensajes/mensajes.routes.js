@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authMiddleware, requireRol } from '../../middleware/auth.js';
+import { authMiddleware, requireRol, requirePermiso } from '../../middleware/auth.js';
 import { validateInput } from '../../middleware/validateInput.js';
 import * as controller from './mensajes.controller.js';
 
 const router = Router();
 router.use(authMiddleware);
+router.use(requirePermiso('puedeChat'));
 
 router.get('/conversaciones',  controller.getConversaciones);
 router.get('/contactos',       controller.getContactosDisponibles);
