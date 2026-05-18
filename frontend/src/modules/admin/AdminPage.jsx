@@ -1049,40 +1049,43 @@ function TabPendientes({ onCambio }) {
           <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-2 flex items-center gap-1">
             <Icon size={12} /> {label} ({items.length})
           </p>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {items.map((item) => (
-              <div key={item.id} className="bg-base-100 rounded-xl p-3 shadow-sm border-l-4 border-warning">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">{item.titulo}</p>
-                    <p className="text-xs text-base-content/50 mt-0.5">
-                      {item.creador?.nombre}
-                      {item.curso?.nombre ? ` · ${item.curso.nombre}` : ''}
-                      {item.contenido && ` · ${item.contenido.slice(0, 60)}${item.contenido.length > 60 ? '…' : ''}`}
-                      {item.descripcion && ` · ${item.descripcion.slice(0, 60)}${item.descripcion.length > 60 ? '…' : ''}`}
+              <div key={item.id} className="bg-base-100 rounded-xl shadow-sm border-l-4 border-warning overflow-hidden">
+                <div className="p-3 pb-2">
+                  <p className="font-semibold text-sm leading-snug">{item.titulo}</p>
+                  <p className="text-xs text-base-content/60 mt-1">
+                    <span className="font-medium">{item.creador?.nombre}</span>
+                    {item.curso?.nombre && <span className="text-base-content/40"> · {item.curso.nombre}</span>}
+                  </p>
+                  {(item.contenido || item.descripcion) && (
+                    <p className="text-xs text-base-content/50 mt-1 line-clamp-2">
+                      {(item.contenido || item.descripcion).slice(0, 120)}
+                      {(item.contenido || item.descripcion).length > 120 ? '…' : ''}
                     </p>
-                    <p className="text-[10px] text-base-content/30 mt-0.5">
-                      {format(new Date(item.createdAt), "d MMM yyyy, HH:mm", { locale: es })}
-                    </p>
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button
-                      className="btn btn-success btn-xs gap-1"
-                      onClick={() => handleAprobar(key.slice(0, -1), item.id)}
-                      disabled={aprobando === item.id}
-                    >
-                      {aprobando === item.id
-                        ? <span className="loading loading-spinner loading-xs" />
-                        : <><IconCheck size={12} /> Aprobar</>}
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-xs text-error"
-                      onClick={() => handleRechazar(key.slice(0, -1), item.id)}
-                      disabled={aprobando === item.id}
-                    >
-                      <IconX size={12} />
-                    </button>
-                  </div>
+                  )}
+                  <p className="text-[10px] text-base-content/30 mt-1.5">
+                    {format(new Date(item.createdAt), "d MMM yyyy, HH:mm", { locale: es })}
+                  </p>
+                </div>
+                <div className="flex border-t border-base-200">
+                  <button
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-success hover:bg-success/10 transition-colors"
+                    onClick={() => handleAprobar(key.slice(0, -1), item.id)}
+                    disabled={aprobando === item.id}
+                  >
+                    {aprobando === item.id
+                      ? <span className="loading loading-spinner loading-xs" />
+                      : <><IconCheck size={13} /> Aprobar</>}
+                  </button>
+                  <div className="w-px bg-base-200" />
+                  <button
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                    onClick={() => handleRechazar(key.slice(0, -1), item.id)}
+                    disabled={aprobando === item.id}
+                  >
+                    <IconX size={13} /> Rechazar
+                  </button>
                 </div>
               </div>
             ))}
