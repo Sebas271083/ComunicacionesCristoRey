@@ -22,7 +22,10 @@ export async function listarDocentes() {
 export async function listarUsuarios() {
   return prisma.usuario.findMany({
     where: { activo: true },
-    select: { id: true, nombre: true, email: true, rol: true, createdAt: true },
+    select: {
+      id: true, nombre: true, email: true, rol: true, createdAt: true,
+      puedeChat: true, puedeAnuncios: true, puedeTareas: true, puedeEventos: true,
+    },
     orderBy: { nombre: 'asc' },
   });
 }
