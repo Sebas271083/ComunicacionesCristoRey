@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import { useServiceWorker } from './hooks/useServiceWorker.js';
 import { UpdateNotification } from './components/UpdateNotification.jsx';
@@ -40,10 +41,17 @@ function AdminRoute({ children }) {
 
 function PermisoRoute({ campo, children }) {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const bloqueado = !loading && user?.rol === 'docente' && user?.[campo] === false;
+
+  useEffect(() => {
+    if (bloqueado) navigate('/perfil', { replace: true });
+  }, [bloqueado, navigate]);
+
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  // Solo aplica restricción a docentes; papás y privilegiados siempre pasan
-  if (user.rol === 'docente' && user[campo] === false) return <Navigate to="/perfil" replace />;
+  if (bloqueado) return null;
   return children;
 }
 
