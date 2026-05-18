@@ -46,7 +46,10 @@ function PermisoRoute({ campo, children }) {
   const bloqueado = !loading && user?.rol === 'docente' && user?.[campo] === false;
 
   useEffect(() => {
-    if (bloqueado) navigate('/perfil', { replace: true });
+    if (bloqueado) {
+      // window.location garantiza la redirección aunque el SW sirva bundle viejo
+      window.location.replace('/perfil');
+    }
   }, [bloqueado, navigate]);
 
   if (loading) return null;

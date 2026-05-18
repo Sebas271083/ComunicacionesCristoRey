@@ -1,11 +1,10 @@
 // Incrementar CACHE_NAME en cada deploy para invalidar el cache anterior
 const CACHE_NAME = 'educhat-v3';
 
-// Instalación: sin pre-cacheo de rutas HTML
+// Instalación: activar de inmediato para que el nuevo bundle tome efecto sin esperar
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME));
-  // NO llamar self.skipWaiting() aquí:
-  // el nuevo SW queda en estado "waiting" hasta que el usuario confirme la actualización.
+  self.skipWaiting();
 });
 
 // Activación: limpiar caches de versiones anteriores
