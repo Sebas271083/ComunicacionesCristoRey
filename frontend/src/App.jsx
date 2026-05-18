@@ -38,6 +38,15 @@ function AdminRoute({ children }) {
   return PRIVILEGIADOS.includes(user.rol) ? children : <Navigate to="/chat" replace />;
 }
 
+function PermisoRoute({ campo, children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  // Solo aplica restricción a docentes; papás y privilegiados siempre pasan
+  if (user.rol === 'docente' && user[campo] === false) return <Navigate to="/perfil" replace />;
+  return children;
+}
+
 export default function App() {
   const { updateAvailable, updateServiceWorker } = useServiceWorker();
 
@@ -46,10 +55,10 @@ export default function App() {
       <UpdateNotification available={updateAvailable} onUpdate={updateServiceWorker} />
       <Routes>
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-      <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
-      <Route path="/tareas" element={<PrivateRoute><TasksPage /></PrivateRoute>} />
-      <Route path="/calendario" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
-      <Route path="/anuncios" element={<PrivateRoute><AnunciosPage /></PrivateRoute>} />
+      <Route path="/chat" element={<PermisoRoute campo="puedeChat"><ChatPage /></PermisoRoute>} />
+      <Route path="/tareas" element={<PermisoRoute campo="puedeTareas"><TasksPage /></PermisoRoute>} />
+      <Route path="/calendario" element={<PermisoRoute campo="puedeEventos"><CalendarPage /></PermisoRoute>} />
+      <Route path="/anuncios" element={<PermisoRoute campo="puedeAnuncios"><AnunciosPage /></PermisoRoute>} />
       <Route path="/perfil" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="*" element={<Navigate to="/chat" replace />} />
