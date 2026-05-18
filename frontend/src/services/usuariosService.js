@@ -5,6 +5,7 @@ export const usuariosService = {
   getDocentes:  ()           => api.get('/usuarios/docentes').then((r) => r.data.data),
   getUsuario:   (id)         => api.get(`/usuarios/${id}`).then((r) => r.data.data),
   crear:        (data)       => api.post('/usuarios', data).then((r) => r.data.data),
-  actualizar:   (id, data)   => api.put(`/usuarios/${id}`, data).then((r) => r.data.data),
-  desactivar:   (id)         => api.delete(`/usuarios/${id}`).then((r) => r.data.data),
+  actualizar:        (id, data)   => api.put(`/usuarios/${id}`, data).then((r) => r.data.data),
+  actualizarPermisos:(id, data)   => api.put(`/usuarios/${id}/permisos`, data).then((r) => r.data.data),
+  desactivar:        (id)         => api.delete(`/usuarios/${id}`).then((r) => r.data.data),
 };

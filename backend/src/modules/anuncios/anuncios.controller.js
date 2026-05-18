@@ -33,6 +33,18 @@ export async function actualizar(req, res, next) {
   }
 }
 
+export async function listarPendientes(req, res, next) {
+  try {
+    res.json({ ok: true, data: await anunciosService.listarPendientes() });
+  } catch (err) { next(err); }
+}
+
+export async function aprobar(req, res, next) {
+  try {
+    res.json({ ok: true, data: await anunciosService.aprobar(req.params.id) });
+  } catch (err) { next(err); }
+}
+
 export async function eliminar(req, res, next) {
   try {
     await anunciosService.eliminar(req.params.id, req.user.userId, req.user.rol);

@@ -39,6 +39,18 @@ export async function eliminar(req, res, next) {
   }
 }
 
+export async function listarPendientes(req, res, next) {
+  try {
+    res.json({ ok: true, data: await tareasService.listarPendientes() });
+  } catch (err) { next(err); }
+}
+
+export async function aprobar(req, res, next) {
+  try {
+    res.json({ ok: true, data: await tareasService.aprobar(req.params.id) });
+  } catch (err) { next(err); }
+}
+
 export async function toggleCompletada(req, res, next) {
   try {
     const tarea = await tareasService.toggleCompletada(req.params.id);

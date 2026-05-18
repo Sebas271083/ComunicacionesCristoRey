@@ -24,8 +24,8 @@ export async function login({ email, password }) {
   if (!valido) throw new Error('Credenciales inválidas');
 
   const payload = { userId: usuario.id, email: usuario.email, rol: usuario.rol };
-  const { password: _, ...usuarioSinPassword } = usuario;
-  return { usuario: usuarioSinPassword, token: signToken(payload), refreshToken: signRefreshToken(payload) };
+  const usuarioCompleto = await prisma.usuario.findUnique({ where: { id: usuario.id }, select: PERMISOS_SELECT });
+  return { usuario: usuarioCompleto, token: signToken(payload), refreshToken: signRefreshToken(payload) };
 }
 
 export async function refreshToken(token) {
@@ -37,11 +37,13 @@ export async function refreshToken(token) {
   return { token: signToken(newPayload) };
 }
 
+const PERMISOS_SELECT = {
+  id: true, email: true, nombre: true, rol: true, createdAt: true,
+  puedeChat: true, puedeAnuncios: true, puedeTareas: true, puedeEventos: true,
+};
+
 export async function getMe(userId) {
-  const usuario = await prisma.usuario.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, nombre: true, rol: true, createdAt: true },
-  });
+  const usuario = await prisma.usuario.findUnique({ where: { id: userId }, select: PERMISOS_SELECT });
   if (!usuario) throw new Error('Usuario no encontrado');
   return usuario;
 }

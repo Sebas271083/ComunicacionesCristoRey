@@ -7,11 +7,13 @@ import { usuariosService } from '../../services/usuariosService.js';
 import { alumnosService } from '../../services/alumnosService.js';
 import { cursosService } from '../../services/cursosService.js';
 import { auditService } from '../../services/auditService.js';
+import { pendientesService } from '../../services/pendientesService.js';
 import { formatRelativo } from '../../utils/formatDate.js';
 import {
   IconPlus, IconTrash, IconUser, IconSchool, IconBook,
   IconUserPlus, IconLink, IconLinkOff, IconX, IconChevronDown, IconHistory,
   IconPencil, IconCalendarEvent, IconSearch, IconId,
+  IconCheck, IconClockHour4, IconMessages, IconSpeakerphone, IconCalendar, IconClipboardList, IconToggleLeft,
 } from '@tabler/icons-react';
 
 const CICLO_ACTUAL = new Date().getFullYear();
@@ -56,6 +58,8 @@ function TabUsuarios() {
   const [busqueda, setBusqueda] = useState('');
   const [editando, setEditando] = useState(null);
   const [editForm, setEditForm] = useState({ nombre: '', email: '', rol: 'docente', password: '' });
+  const [permisosModal, setPermisosModal] = useState(null);
+  const [permisosGuardando, setPermisosGuardando] = useState(false);
 
   const cargar = useCallback(async () => {
     try { setUsuarios(await usuariosService.listar()); }
@@ -95,6 +99,15 @@ function TabUsuarios() {
     } catch (err) {
       setError(err.response?.data?.error ?? 'Error al crear usuario');
     } finally { setSaving(false); }
+  };
+
+  const handleTogglePermiso = async (campo, valor) => {
+    setPermisosGuardando(true);
+    try {
+      const actualizado = await usuariosService.actualizarPermisos(permisosModal.id, { [campo]: valor });
+      setPermisosModal((p) => ({ ...p, ...actualizado }));
+      setUsuarios((prev) => prev.map((u) => u.id === actualizado.id ? { ...u, ...actualizado } : u));
+    } finally { setPermisosGuardando(false); }
   };
 
   const handleDesactivar = async (id) => {
@@ -157,6 +170,11 @@ function TabUsuarios() {
                     <p className="text-xs text-base-content/50 truncate">{u.email}</p>
                   </div>
                   <span className={`badge badge-sm ${ROL_BADGE[u.rol] ?? 'badge-ghost'}`}>{u.rol}</span>
+                  {u.rol === 'docente' && (
+                    <button className="btn btn-ghost btn-xs text-warning" title="Permisos" onClick={() => setPermisosModal(u)}>
+                      <IconToggleLeft size={14} />
+                    </button>
+                  )}
                   <button className="btn btn-ghost btn-xs text-info" onClick={() => abrirEditar(u)}>
                     <IconPencil size={14} />
                   </button>
@@ -202,6 +220,32 @@ function TabUsuarios() {
               {saving ? <span className="loading loading-spinner loading-sm" /> : 'Guardar cambios'}
             </button>
           </form>
+        </Modal>
+      )}
+
+      {permisosModal && (
+        <Modal title={`Permisos — ${permisosModal.nombre}`} onClose={() => setPermisosModal(null)}>
+          <p className="text-xs text-base-content/50 mb-4">Activá o desactivá el acceso a cada sección para este docente.</p>
+          {[
+            { campo: 'puedeChat',      label: 'Mensajes',   icon: IconMessages },
+            { campo: 'puedeAnuncios',  label: 'Anuncios',   icon: IconSpeakerphone },
+            { campo: 'puedeTareas',    label: 'Tareas',     icon: IconClipboardList },
+            { campo: 'puedeEventos',   label: 'Calendario', icon: IconCalendar },
+          ].map(({ campo, label, icon: Icon }) => (
+            <div key={campo} className="flex items-center justify-between py-3 border-b border-base-200 last:border-0">
+              <div className="flex items-center gap-2">
+                <Icon size={16} className="text-base-content/50" />
+                <span className="text-sm font-medium">{label}</span>
+              </div>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-sm"
+                checked={permisosModal[campo] !== false}
+                disabled={permisosGuardando}
+                onChange={(e) => handleTogglePermiso(campo, e.target.checked)}
+              />
+            </div>
+          ))}
         </Modal>
       )}
 
@@ -947,6 +991,108 @@ function TabAuditoria() {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 
+// ── Tab: Pendientes ───────────────────────────────────────────────────────────
+function TabPendientes({ onCambio }) {
+  const [datos, setDatos] = useState({ tareas: [], anuncios: [], eventos: [] });
+  const [loading, setLoading] = useState(true);
+  const [aprobando, setAprobando] = useState(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try { setDatos(await pendientesService.listar()); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const total = datos.tareas.length + datos.anuncios.length + datos.eventos.length;
+
+  const handleAprobar = async (tipo, id) => {
+    setAprobando(id);
+    try {
+      if (tipo === 'tarea')   await pendientesService.aprobarTarea(id);
+      if (tipo === 'anuncio') await pendientesService.aprobarAnuncio(id);
+      if (tipo === 'evento')  await pendientesService.aprobarEvento(id);
+      await cargar();
+      onCambio?.();
+    } finally { setAprobando(null); }
+  };
+
+  const handleRechazar = async (tipo, id) => {
+    if (!confirm('¿Rechazar y eliminar este contenido?')) return;
+    if (tipo === 'tarea')   await pendientesService.eliminarTarea(id);
+    if (tipo === 'anuncio') await pendientesService.eliminarAnuncio(id);
+    if (tipo === 'evento')  await pendientesService.eliminarEvento(id);
+    await cargar();
+    onCambio?.();
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><span className="loading loading-spinner text-primary" /></div>;
+
+  if (total === 0) return (
+    <div className="flex flex-col items-center justify-center py-16 text-base-content/40 gap-2">
+      <IconCheck size={48} />
+      <p className="text-sm">Todo al día — sin contenido pendiente</p>
+    </div>
+  );
+
+  const SECCIONES = [
+    { key: 'anuncios', label: 'Anuncios',   items: datos.anuncios, icon: IconSpeakerphone },
+    { key: 'tareas',   label: 'Tareas',     items: datos.tareas,   icon: IconClipboardList },
+    { key: 'eventos',  label: 'Eventos',    items: datos.eventos,  icon: IconCalendar },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      {SECCIONES.filter((s) => s.items.length > 0).map(({ key, label, items, icon: Icon }) => (
+        <div key={key}>
+          <p className="text-xs font-bold uppercase tracking-wide text-base-content/40 mb-2 flex items-center gap-1">
+            <Icon size={12} /> {label} ({items.length})
+          </p>
+          <div className="flex flex-col gap-2">
+            {items.map((item) => (
+              <div key={item.id} className="bg-base-100 rounded-xl p-3 shadow-sm border-l-4 border-warning">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">{item.titulo}</p>
+                    <p className="text-xs text-base-content/50 mt-0.5">
+                      {item.creador?.nombre}
+                      {item.curso?.nombre ? ` · ${item.curso.nombre}` : ''}
+                      {item.contenido && ` · ${item.contenido.slice(0, 60)}${item.contenido.length > 60 ? '…' : ''}`}
+                      {item.descripcion && ` · ${item.descripcion.slice(0, 60)}${item.descripcion.length > 60 ? '…' : ''}`}
+                    </p>
+                    <p className="text-[10px] text-base-content/30 mt-0.5">
+                      {format(new Date(item.createdAt), "d MMM yyyy, HH:mm", { locale: es })}
+                    </p>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      className="btn btn-success btn-xs gap-1"
+                      onClick={() => handleAprobar(key.slice(0, -1), item.id)}
+                      disabled={aprobando === item.id}
+                    >
+                      {aprobando === item.id
+                        ? <span className="loading loading-spinner loading-xs" />
+                        : <><IconCheck size={12} /> Aprobar</>}
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs text-error"
+                      onClick={() => handleRechazar(key.slice(0, -1), item.id)}
+                      disabled={aprobando === item.id}
+                    >
+                      <IconX size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const TABS = [
   { key: 'usuarios', label: 'Usuarios', icon: IconUser },
   { key: 'alumnos', label: 'Alumnos', icon: IconSchool },
@@ -956,28 +1102,52 @@ const TABS = [
 
 export function AdminPage() {
   const [tab, setTab] = useState('usuarios');
+  const [pendientesCount, setPendientesCount] = useState(0);
+
+  const refreshPendientes = useCallback(async () => {
+    try {
+      const d = await pendientesService.listar();
+      setPendientesCount(d.tareas.length + d.anuncios.length + d.eventos.length);
+    } catch { /* ignorar */ }
+  }, []);
+
+  useEffect(() => { refreshPendientes(); }, [refreshPendientes]);
+
+  const TABS = [
+    { key: 'usuarios',   label: 'Usuarios',  icon: IconUser },
+    { key: 'alumnos',    label: 'Alumnos',   icon: IconSchool },
+    { key: 'cursos',     label: 'Cursos',    icon: IconBook },
+    { key: 'pendientes', label: 'Pendientes',icon: IconClockHour4, badge: pendientesCount },
+    { key: 'auditoria',  label: 'Auditoría', icon: IconHistory },
+  ];
 
   return (
     <Layout title="Administración">
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-4">
-        {/* Tabs */}
-        <div className="flex border-b border-base-200 mb-4">
-          {TABS.map(({ key, label, icon: Icon }) => (
+        <div className="flex border-b border-base-200 mb-4 overflow-x-auto">
+          {TABS.map(({ key, label, icon: Icon, badge }) => (
             <button
               key={key}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium transition-colors ${tab === key ? 'text-primary border-b-2 border-primary' : 'text-base-content/50'
-                }`}
+              className={`flex-shrink-0 flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium transition-colors relative ${
+                tab === key ? 'text-primary border-b-2 border-primary' : 'text-base-content/50'
+              }`}
               onClick={() => setTab(key)}
             >
-              <Icon size={15} /> {label}
+              <Icon size={14} /> {label}
+              {badge > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-warning text-warning-content text-[9px] font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5">
+                  {badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {tab === 'usuarios' && <TabUsuarios />}
-        {tab === 'alumnos' && <TabAlumnos />}
-        {tab === 'cursos' && <TabCursos />}
-        {tab === 'auditoria' && <TabAuditoria />}
+        {tab === 'usuarios'   && <TabUsuarios />}
+        {tab === 'alumnos'    && <TabAlumnos />}
+        {tab === 'cursos'     && <TabCursos />}
+        {tab === 'pendientes' && <TabPendientes onCambio={refreshPendientes} />}
+        {tab === 'auditoria'  && <TabAuditoria />}
       </div>
     </Layout>
   );

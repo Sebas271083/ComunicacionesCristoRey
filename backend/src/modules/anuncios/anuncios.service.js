@@ -20,6 +20,7 @@ export async function listarParaPapa(papaId) {
 
   return prisma.anuncio.findMany({
     where: {
+      aprobado: true,
       destinatario: { not: 'docentes' },
       OR: [{ cursoId: null }, { cursoId: { in: cursoIds } }],
     },
@@ -39,8 +40,8 @@ export async function listarParaDocente(docenteId) {
     where: {
       OR: [
         { creadorId: docenteId },
-        { destinatario: { not: 'padres' }, cursoId: null },
-        { destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
+        { aprobado: true, destinatario: { not: 'padres' }, cursoId: null },
+        { aprobado: true, destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
       ],
     },
     orderBy: { createdAt: 'desc' },
@@ -60,6 +61,7 @@ export async function crear({ titulo, contenido, cursoId, destinatario, creadorI
     const ids = await cursoIdsDelDocente(creadorId);
     if (!ids.includes(cursoId)) throw new Error('No tenés asignación en ese curso');
   }
+  const aprobado = rol !== 'docente';
   const anuncio = await prisma.anuncio.create({
     data: {
       titulo,
@@ -67,9 +69,12 @@ export async function crear({ titulo, contenido, cursoId, destinatario, creadorI
       cursoId: cursoId || null,
       destinatario: destinatario || 'todos',
       creadorId,
+      aprobado,
     },
     include: includeBase,
   });
+
+  if (!aprobado) return anuncio;
 
   notificarCreacion({
     cursoId: anuncio.cursoId,
@@ -82,6 +87,33 @@ export async function crear({ titulo, contenido, cursoId, destinatario, creadorI
     },
   });
 
+  return anuncio;
+}
+
+export async function listarPendientes() {
+  return prisma.anuncio.findMany({
+    where: { aprobado: false },
+    orderBy: { createdAt: 'desc' },
+    include: includeBase,
+  });
+}
+
+export async function aprobar(id) {
+  const anuncio = await prisma.anuncio.update({
+    where: { id },
+    data: { aprobado: true },
+    include: includeBase,
+  });
+  notificarCreacion({
+    cursoId: anuncio.cursoId,
+    destinatario: anuncio.destinatario,
+    creadorId: anuncio.creadorId,
+    payload: {
+      title: `Nuevo anuncio: ${anuncio.titulo}`,
+      body: anuncio.contenido.length > 80 ? anuncio.contenido.slice(0, 77) + '...' : anuncio.contenido,
+      url: '/anuncios',
+    },
+  });
   return anuncio;
 }
 

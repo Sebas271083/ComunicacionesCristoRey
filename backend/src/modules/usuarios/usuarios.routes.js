@@ -24,6 +24,7 @@ router.post('/',
   controller.crearUsuario
 );
 router.get('/:id', controller.obtenerUsuario);
+router.put('/:id/permisos', requireRol(...PRIVILEGIADOS), controller.actualizarPermisos);
 router.put('/:id', requireRol(...PRIVILEGIADOS), controller.actualizarUsuario);
 router.delete('/:id', requireRol(...PRIVILEGIADOS), controller.desactivarUsuario);
 

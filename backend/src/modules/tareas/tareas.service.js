@@ -39,11 +39,9 @@ export async function listar({ desde, hasta } = {}, userId, rol) {
       where: {
         ...rango,
         OR: [
-          // Siempre ve las tareas que él mismo creó
           { creadorId: userId },
-          // Y las de sus cursos que no sean exclusivas de padres
-          { destinatario: { not: 'padres' }, cursoId: null },
-          { destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
+          { aprobado: true, destinatario: { not: 'padres' }, cursoId: null },
+          { aprobado: true, destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
         ],
       },
       orderBy: { fechaVencimiento: 'asc' },
@@ -61,6 +59,7 @@ export async function listar({ desde, hasta } = {}, userId, rol) {
   return prisma.tarea.findMany({
     where: {
       ...rango,
+      aprobado: true,
       destinatario: { not: 'docentes' },
       OR: [{ cursoId: null }, { cursoId: { in: cursoIds } }],
     },
@@ -74,6 +73,7 @@ export async function crear({ titulo, descripcion, fechaVencimiento, creadorId, 
     const ids = await cursoIdsDelDocente(creadorId);
     if (!ids.includes(cursoId)) throw new Error('No tenés asignación en ese curso');
   }
+  const aprobado = rol !== 'docente';
   const tarea = await prisma.tarea.create({
     data: {
       titulo,
@@ -82,9 +82,12 @@ export async function crear({ titulo, descripcion, fechaVencimiento, creadorId, 
       creadorId,
       cursoId: cursoId || null,
       destinatario: destinatario || 'todos',
+      aprobado,
     },
     include: includeBase,
   });
+
+  if (!aprobado) return tarea;
 
   notificarCreacion({
     cursoId: tarea.cursoId,
@@ -133,6 +136,33 @@ export async function eliminar(id, userId, rol) {
   if (!tarea) throw new Error('Tarea no encontrada');
   if (tarea.creadorId !== userId && !isPrivilegiado(rol)) throw new Error('Sin permiso');
   return prisma.tarea.delete({ where: { id } });
+}
+
+export async function listarPendientes() {
+  return prisma.tarea.findMany({
+    where: { aprobado: false },
+    orderBy: { createdAt: 'desc' },
+    include: includeBase,
+  });
+}
+
+export async function aprobar(id) {
+  const tarea = await prisma.tarea.update({
+    where: { id },
+    data: { aprobado: true },
+    include: includeBase,
+  });
+  notificarCreacion({
+    cursoId: tarea.cursoId,
+    destinatario: tarea.destinatario,
+    creadorId: tarea.creadorId,
+    payload: {
+      title: `Nueva tarea: ${tarea.titulo}`,
+      body: tarea.descripcion ?? `Vence ${new Date(tarea.fechaVencimiento).toLocaleDateString('es-AR')}`,
+      url: '/tareas',
+    },
+  });
+  return tarea;
 }
 
 export async function toggleCompletada(id) {

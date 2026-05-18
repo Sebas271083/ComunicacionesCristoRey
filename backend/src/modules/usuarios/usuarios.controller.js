@@ -54,6 +54,12 @@ export async function actualizarUsuario(req, res, next) {
   }
 }
 
+export async function actualizarPermisos(req, res, next) {
+  try {
+    res.json({ ok: true, data: await usuariosService.actualizarPermisos(req.params.id, req.body) });
+  } catch (err) { next(err); }
+}
+
 export async function desactivarUsuario(req, res, next) {
   try {
     const usuario = await usuariosService.desactivarUsuario(req.params.id);

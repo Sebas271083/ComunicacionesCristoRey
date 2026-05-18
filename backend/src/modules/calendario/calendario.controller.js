@@ -28,6 +28,18 @@ export async function actualizar(req, res, next) {
   }
 }
 
+export async function listarPendientes(req, res, next) {
+  try {
+    res.json({ ok: true, data: await calendarioService.listarPendientes() });
+  } catch (err) { next(err); }
+}
+
+export async function aprobar(req, res, next) {
+  try {
+    res.json({ ok: true, data: await calendarioService.aprobar(req.params.id) });
+  } catch (err) { next(err); }
+}
+
 export async function eliminar(req, res, next) {
   try {
     await calendarioService.eliminar(req.params.id, req.user.userId, req.user.rol);

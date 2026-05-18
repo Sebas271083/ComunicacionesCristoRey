@@ -17,6 +17,12 @@ model Usuario {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Permisos granulares (relevante para docentes)
+  puedeChat      Boolean @default(true)
+  puedeAnuncios  Boolean @default(true)
+  puedeTareas    Boolean @default(true)
+  puedeEventos   Boolean @default(true)
+
   mensajesEnviados   Mensaje[]         @relation("enviador")
   mensajesRecibidos  Mensaje[]         @relation("receptor")
   tareasCreadas      Tarea[]           @relation("creador")
@@ -136,6 +142,7 @@ model Tarea {
   cursoId          String?  // null = todos los cursos
   destinatario     String   @default("todos") // "todos" | "docentes" | "padres"
   completada       Boolean  @default(false)
+  aprobado         Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -156,6 +163,7 @@ model Evento {
   alumno       Alumno?  @relation(fields: [alumnoId], references: [id])
   alumnoId     String?  // null = no específico de alumno
   destinatario String   @default("todos") // "todos" | "docentes" | "padres"
+  aprobado     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -173,6 +181,7 @@ model Anuncio {
   curso        Curso?   @relation(fields: [cursoId], references: [id])
   cursoId      String?  // null = todos los cursos
   destinatario String   @default("todos") // "todos" | "docentes" | "padres"
+  aprobado     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

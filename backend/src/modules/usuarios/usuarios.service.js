@@ -62,6 +62,19 @@ export async function actualizarUsuario(id, { nombre, email, rol, password }) {
   });
 }
 
+export async function actualizarPermisos(id, { puedeChat, puedeAnuncios, puedeTareas, puedeEventos }) {
+  return prisma.usuario.update({
+    where: { id },
+    data: {
+      ...(puedeChat      !== undefined && { puedeChat }),
+      ...(puedeAnuncios  !== undefined && { puedeAnuncios }),
+      ...(puedeTareas    !== undefined && { puedeTareas }),
+      ...(puedeEventos   !== undefined && { puedeEventos }),
+    },
+    select: { id: true, nombre: true, puedeChat: true, puedeAnuncios: true, puedeTareas: true, puedeEventos: true },
+  });
+}
+
 export async function desactivarUsuario(id) {
   return prisma.usuario.update({
     where: { id },

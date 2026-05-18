@@ -45,8 +45,8 @@ export async function listar({ mes, anio } = {}, userId, rol) {
         ...rango,
         OR: [
           { creadorId: userId },
-          { alumnoId: null, destinatario: { not: 'padres' }, cursoId: null },
-          { alumnoId: null, destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
+          { aprobado: true, alumnoId: null, destinatario: { not: 'padres' }, cursoId: null },
+          { aprobado: true, alumnoId: null, destinatario: { not: 'padres' }, cursoId: { in: cursoIds } },
         ],
       },
       orderBy: { fecha: 'asc' },
@@ -65,13 +65,11 @@ export async function listar({ mes, anio } = {}, userId, rol) {
   return prisma.evento.findMany({
     where: {
       ...rango,
+      aprobado: true,
       destinatario: { not: 'docentes' },
       OR: [
-        // Generales sin curso ni alumno
         { cursoId: null, alumnoId: null },
-        // De los cursos de sus hijos, sin alumno específico
         { cursoId: { in: cursoIds }, alumnoId: null },
-        // Por alumno, para sus hijos
         { alumnoId: { in: alumnoIds } },
       ],
     },
@@ -85,6 +83,7 @@ export async function crear({ titulo, descripcion, fecha, tipo, creadorId, curso
     const ids = await cursoIdsDelDocente(creadorId);
     if (!ids.includes(cursoId)) throw new Error('No tenés asignación en ese curso');
   }
+  const aprobado = rol !== 'docente';
   const evento = await prisma.evento.create({
     data: {
       titulo,
@@ -95,9 +94,12 @@ export async function crear({ titulo, descripcion, fecha, tipo, creadorId, curso
       cursoId:      cursoId   || null,
       alumnoId:     alumnoId  || null,
       destinatario: destinatario || 'todos',
+      aprobado,
     },
     include: includeBase,
   });
+
+  if (!aprobado) return evento;
 
   notificarCreacion({
     cursoId: evento.cursoId,
@@ -111,6 +113,34 @@ export async function crear({ titulo, descripcion, fecha, tipo, creadorId, curso
     },
   });
 
+  return evento;
+}
+
+export async function listarPendientes() {
+  return prisma.evento.findMany({
+    where: { aprobado: false },
+    orderBy: { createdAt: 'desc' },
+    include: includeBase,
+  });
+}
+
+export async function aprobar(id) {
+  const evento = await prisma.evento.update({
+    where: { id },
+    data: { aprobado: true },
+    include: includeBase,
+  });
+  notificarCreacion({
+    cursoId: evento.cursoId,
+    alumnoId: evento.alumnoId,
+    destinatario: evento.destinatario,
+    creadorId: evento.creadorId,
+    payload: {
+      title: `Nuevo evento: ${evento.titulo}`,
+      body: `${new Date(evento.fecha).toLocaleDateString('es-AR')}${evento.descripcion ? ` · ${evento.descripcion}` : ''}`,
+      url: '/calendario',
+    },
+  });
   return evento;
 }
 

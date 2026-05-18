@@ -9,16 +9,18 @@ export function BottomNav() {
   const unreadCount = useChatStore((s) => s.unreadCount);
   const { user } = useAuth();
 
+  const esDocente = user?.rol === 'docente';
+
   const links = [
-    {
+    ...(!esDocente || user?.puedeChat !== false ? [{
       to: '/chat',
       icon: IconMessages,
       label: 'Mensajes',
       badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null,
-    },
-    { to: '/tareas', icon: IconClipboardList, label: 'Tareas' },
-    { to: '/calendario', icon: IconCalendar, label: 'Calendario' },
-    { to: '/anuncios', icon: IconSpeakerphone, label: 'Anuncios' },
+    }] : []),
+    ...(!esDocente || user?.puedeTareas !== false   ? [{ to: '/tareas',    icon: IconClipboardList, label: 'Tareas'    }] : []),
+    ...(!esDocente || user?.puedeEventos !== false  ? [{ to: '/calendario', icon: IconCalendar,      label: 'Calendario'}] : []),
+    ...(!esDocente || user?.puedeAnuncios !== false ? [{ to: '/anuncios',   icon: IconSpeakerphone,  label: 'Anuncios'  }] : []),
     ...(PRIVILEGIADOS.includes(user?.rol)
       ? [{ to: '/admin', icon: IconSettings, label: 'Admin' }]
       : [{ to: '/perfil', icon: IconUser, label: 'Perfil' }]
