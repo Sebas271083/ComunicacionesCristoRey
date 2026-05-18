@@ -45,6 +45,23 @@ export async function cambiarPassword(id, { passwordActual, passwordNueva }) {
   return prisma.usuario.update({ where: { id }, data: { password: hash }, select: { id: true } });
 }
 
+export async function actualizarUsuario(id, { nombre, email, rol, password }) {
+  const data = {};
+  if (nombre) data.nombre = nombre;
+  if (rol)    data.rol    = rol;
+  if (email) {
+    const existe = await prisma.usuario.findFirst({ where: { email, NOT: { id } } });
+    if (existe) throw new Error('El email ya está registrado');
+    data.email = email;
+  }
+  if (password) data.password = await bcrypt.hash(password, 12);
+  return prisma.usuario.update({
+    where: { id },
+    data,
+    select: { id: true, nombre: true, email: true, rol: true, createdAt: true },
+  });
+}
+
 export async function desactivarUsuario(id) {
   return prisma.usuario.update({
     where: { id },

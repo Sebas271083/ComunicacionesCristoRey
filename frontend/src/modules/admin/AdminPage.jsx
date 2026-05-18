@@ -54,6 +54,8 @@ function TabUsuarios() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [busqueda, setBusqueda] = useState('');
+  const [editando, setEditando] = useState(null);
+  const [editForm, setEditForm] = useState({ nombre: '', email: '', rol: 'docente', password: '' });
 
   const cargar = useCallback(async () => {
     try { setUsuarios(await usuariosService.listar()); }
@@ -61,6 +63,26 @@ function TabUsuarios() {
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  const abrirEditar = (u) => {
+    setEditForm({ nombre: u.nombre, email: u.email, rol: u.rol, password: '' });
+    setEditando(u);
+    setError('');
+  };
+
+  const handleActualizar = async (e) => {
+    e.preventDefault();
+    setSaving(true); setError('');
+    try {
+      const payload = { nombre: editForm.nombre, email: editForm.email, rol: editForm.rol };
+      if (editForm.password) payload.password = editForm.password;
+      const actualizado = await usuariosService.actualizar(editando.id, payload);
+      setUsuarios((prev) => prev.map((u) => u.id === actualizado.id ? actualizado : u));
+      setEditando(null);
+    } catch (err) {
+      setError(err.response?.data?.error ?? 'Error al actualizar');
+    } finally { setSaving(false); }
+  };
 
   const handleCrear = async (e) => {
     e.preventDefault();
@@ -135,6 +157,9 @@ function TabUsuarios() {
                     <p className="text-xs text-base-content/50 truncate">{u.email}</p>
                   </div>
                   <span className={`badge badge-sm ${ROL_BADGE[u.rol] ?? 'badge-ghost'}`}>{u.rol}</span>
+                  <button className="btn btn-ghost btn-xs text-info" onClick={() => abrirEditar(u)}>
+                    <IconPencil size={14} />
+                  </button>
                   {u.id !== me.id && (
                     <button className="btn btn-ghost btn-xs text-error" onClick={() => handleDesactivar(u.id)}>
                       <IconTrash size={14} />
@@ -146,6 +171,39 @@ function TabUsuarios() {
           </div>
         ))
       }
+
+      {editando && (
+        <Modal title="Editar usuario" onClose={() => { setEditando(null); setError(''); }}>
+          <form onSubmit={handleActualizar} className="flex flex-col gap-3">
+            {error && <div className="alert alert-error py-2 text-sm"><span>{error}</span></div>}
+            <div className="form-control">
+              <label className="label py-1"><span className="label-text font-medium">Nombre completo</span></label>
+              <input className="input input-bordered" required
+                value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
+            </div>
+            <div className="form-control">
+              <label className="label py-1"><span className="label-text font-medium">Email</span></label>
+              <input className="input input-bordered" type="email" required
+                value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="form-control">
+              <label className="label py-1"><span className="label-text font-medium">Rol</span></label>
+              <select className="select select-bordered" value={editForm.rol}
+                onChange={(e) => setEditForm((f) => ({ ...f, rol: e.target.value }))}>
+                {ROLES_CREABLES.map((r) => <option key={r} value={r}>{etiquetaRol[r] ?? r}</option>)}
+              </select>
+            </div>
+            <div className="form-control">
+              <label className="label py-1"><span className="label-text font-medium">Nueva contraseña</span></label>
+              <input className="input input-bordered" type="password" placeholder="Dejar vacío para no cambiar" minLength={6}
+                value={editForm.password} onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))} />
+            </div>
+            <button className="btn btn-primary mt-1" type="submit" disabled={saving}>
+              {saving ? <span className="loading loading-spinner loading-sm" /> : 'Guardar cambios'}
+            </button>
+          </form>
+        </Modal>
+      )}
 
       {modal && (
         <Modal title="Nuevo usuario" onClose={() => { setModal(false); setError(''); }}>
