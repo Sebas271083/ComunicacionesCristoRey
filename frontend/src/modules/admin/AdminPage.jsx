@@ -1127,21 +1127,24 @@ export function AdminPage() {
   return (
     <Layout title="Administración">
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-4">
-        <div className="flex border-b border-base-200 mb-4 overflow-x-auto">
+        <div className="flex border-b border-base-200 mb-4">
           {TABS.map(({ key, label, icon: Icon, badge }) => (
             <button
               key={key}
-              className={`flex-shrink-0 flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium transition-colors relative ${
-                tab === key ? 'text-primary border-b-2 border-primary' : 'text-base-content/50'
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors relative ${
+                tab === key ? 'text-primary border-b-2 border-primary' : 'text-base-content/40'
               }`}
               onClick={() => setTab(key)}
             >
-              <Icon size={14} /> {label}
-              {badge > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-warning text-warning-content text-[9px] font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5">
-                  {badge}
-                </span>
-              )}
+              <div className="relative">
+                <Icon size={18} />
+                {badge > 0 && (
+                  <span className="absolute -top-1 -right-1.5 bg-warning text-warning-content text-[8px] font-bold rounded-full min-w-[13px] h-3 flex items-center justify-center px-0.5 leading-none">
+                    {badge}
+                  </span>
+                )}
+              </div>
+              <span>{label}</span>
             </button>
           ))}
         </div>
