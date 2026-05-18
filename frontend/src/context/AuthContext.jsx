@@ -22,6 +22,18 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Refresco de permisos cada 2 minutos — capta cambios del administrador sin cerrar sesión
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      try {
+        const actualizado = await authService.getMe();
+        setUser(actualizado);
+      } catch { /* ignorar errores de red */ }
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
   // Poller global de no leídos — activo mientras hay sesión
   useEffect(() => {
     if (!user) return;
